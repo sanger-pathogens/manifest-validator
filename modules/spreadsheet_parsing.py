@@ -21,7 +21,7 @@ class SpreadsheetLoader:
         self._sheet = self._workbook.sheet_by_index(0)
 
     def load(self):
-        result = Spreadsheet()
+        results = []
         data_row = 0
         header_row = 0
         for i in range(self._sheet.nrows):
@@ -31,19 +31,20 @@ class SpreadsheetLoader:
                 break
 
         for i in range(self._sheet.ncols):
+            if self._sheet.cell_value(header_row, i) == 'SUPPLIER SAMPLE NAME':
+                presence_check_column = i
             if self._sheet.cell_value(header_row, i) == 'COMMON NAME':
                 common_name_column = i
             if self._sheet.cell_value(header_row, i) == 'TAXON ID':
                 taxon_id_column = i
 
-        taxon_set = []
         for i in range(data_row, self._sheet.nrows):
             common_name = self.__extract_text_value(i, common_name_column)
             taxon_id = self.__extract_float_value(i, taxon_id_column)
-            if common_name is not None and taxon_id is not None:
-                taxon_set.append([i, common_name, taxon_id])
-        result.taxon_sets = taxon_set
-        return result
+            if common_name is not None and taxon_id is not None and presence_check_column is not None:
+                result = Spreadsheet.new_instance(i, common_name, taxon_id)
+                results.append(result)
+        return results
 
     def __extract_text_value(self, row, column):
         new_data = self._sheet.cell_value(row, column).strip()

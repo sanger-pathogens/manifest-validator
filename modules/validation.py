@@ -1,31 +1,30 @@
-from modules.loader import SpreadsheetLoader
+from modules.spreadsheet_parsing import SpreadsheetLoader
 import argparse
 
 def main(arguments: argparse.Namespace):
     loader = SpreadsheetLoader(arguments.spreadsheet)
-    sheet = loader.load()
+    query_stack = loader.load()
 
     error_list = []
     registered_values = {}
     print(registered_values)
-    for taxon_set in sheet.taxon_sets:
-        if '' or None in taxon_set:
-            error_list = report_error(error_list, sheet, 1)
-        elif [taxon_set[1], taxon_set[2]] in registered_values.values():
+    for query in query_stack:
+        if '' or None in query_stack:
+            error_list = report_error(error_list, query, 1)
+        elif [query.common_name, query.taxon_id] in registered_values.values():
             pass
         else:
             pass
 
 
-def report_error(error_list, taxon_set, error_code):
+def report_error(error_list, query, error_code):
     if error_code == 1:
-        for location, section in enumerate(taxon_set):
-            if location == 1:
-                error_list.append(f'error_single_common_name_found_at_{taxon_set[0]}')
-            else:
-                error_list.append(f'error_single_taxon_id_found_at_{taxon_set[0]}')
+        if query.common_name == None:
+            error_list.append(f'Error: single common name found at {query.row}')
+        else:
+            error_list.append(f'Error: single taxon id found at {query.row}')
         if error_code == 2:
-            error_list.append(f'error_NCBI_cant_find_{taxon_set[1]}_official_name_for_{taxon_set[2]}_is_{taxon_set[3]}')
+            error_list.append(f'Error: NCBI cant find {query.common_name} official name for {query.taxon_id} is {query.ncbi_common_name}')
         if error_code == 3:
-            error_list.append(f'error_{taxon_set[1]}_doesnt_match_{taxon_set[2]}_the_official_name_for_{taxon_set[2]}_is_{taxon_set[3]}')
+            error_list.append(f'Error: {query.common_name} doesnt match {query.taxon_id} the official name for {query.taxon_id} is {query.ncbi_common_name}')
         return error_list
