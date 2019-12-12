@@ -12,11 +12,11 @@ if os.path.exists('VERSION'):
   version = open('VERSION').read().strip()
 
 setup(
-    name='file',
+    name='modules',
     version=version,
     description='What Charles did next',
 	long_description=read('README.md'),
-    packages = ['file'],
+    packages = ['modules'],
     author='Charles Nunn',
     author_email='path-help@sanger.ac.uk',
     url='https://github.com/trstickland/MYPROJECT',
