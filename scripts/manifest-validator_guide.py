@@ -23,7 +23,7 @@
 # 3a   - Query NCBI using taxon_id and return the NCBI_common_name
 #
 # 4    - Once spreadsheet run-through has been completed, sort the error_list to remove any identical lines
-# 4.1  - Print the errors in error_list and save them to a modules
+# 4.1  - Print the errors in error_list and save them to a validation_components
 #
 # Notes: Starting line is 10, cols Y('TAXON ID', value=22) and Z('COMMON NAME', value=23) assuming A=0, external-import
-#        has a spreadsheet reading section, ncbi reading tools can be taken and adapted from James Torrance's modules
+#        has a spreadsheet reading section, ncbi reading tools can be taken and adapted from James Torrance's validation_components
