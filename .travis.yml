@@ -6,7 +6,9 @@ cache:
   directories:
   - "build"
   - "$HOME/.cache/pip"
-install:
-  - python3 setup.py install
+before_script:
+  - pip install codecov
 script:
-  - "./run_tests.sh" 
+  - coverage run setup.py test
+after_success:
+  - codecov
