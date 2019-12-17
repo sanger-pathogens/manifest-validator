@@ -12,19 +12,19 @@ if os.path.exists('VERSION'):
   version = open('VERSION').read().strip()
 
 setup(
-    name='MYPROJECT',
+    name='validation_components',
     version=version,
-    description='What Tim did next',
+    description='What Charles did next',
 	long_description=read('README.md'),
-    packages = find_packages(),
-    author='Tim Stickland',
+    packages = ['validation_components'],
+    author='Charles Nunn',
     author_email='path-help@sanger.ac.uk',
     url='https://github.com/trstickland/MYPROJECT',
     scripts=glob.glob('scripts/*'),
     test_suite='nose.collector',
     tests_require=['nose >= 1.3'],
     install_requires=[
-         'biopython >= 1.68',
+         'xlrd >= 1.2',
          #'pyfastaq >= 3.12.0'
        ],
     license='GPLv3',
