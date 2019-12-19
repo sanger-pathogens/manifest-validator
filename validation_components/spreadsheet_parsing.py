@@ -25,41 +25,47 @@ class ManifestEntry:
             error = None
         return error
 
+
 class NcbiQuery:
 
     @staticmethod
     def query_ncbi(manifest_entry: object):
-        tax_id_json = NcbiQuery.ncbi_search(esearch=True)
+        url = NcbiQuery.build_url(manifest_entry, esearch=True)
+        tax_id_json = NcbiQuery.ncbi_search(url)
         if 'esearchresult' in tax_id_json and 'idlist' in tax_id_json['esearchresult'] and len(
                 tax_id_json['esearchresult']['idlist']) == 1:
             if tax_id_json['esearchresult']['idlist'][0] == manifest_entry.taxon_id:
-                return None
+                manifest_entry.error_code = None
+                return manifest_entry
             else:
-                error = 3
+                manifest_entry.error_code = 3
         else:
-            error = 2
+            manifest_entry.error_code = 2
 
-        common_name_json = NcbiQuery.ncbi_search(esearch=False)
+        url = NcbiQuery.build_url(manifest_entry, esearch=False)
+        common_name_json = NcbiQuery.ncbi_search(url)
         if 'result' in common_name_json and manifest_entry.taxon_id in common_name_json['result'] and 'scientificname' in \
                 common_name_json['result'][manifest_entry.taxon_id]:
             manifest_entry.ncbi_common_name = tax_id_json['result'][manifest_entry.taxon_id]['scientificname']
         else:
             manifest_entry.ncbi_common_name = 'unkown as the taxon ID is invalid'
-        return error
+        return manifest_entry
 
     @staticmethod
-    def ncbi_search(manifest_entry, esearch: bool):
+    def build_url(manifest_entry, esearch: bool):
         mid_url = '.fcgi?db=taxonomy&'
         base_url = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/'
         end_url = '&retmode=json'
-        search_session = requests.Session()
-
         if esearch:
             url = base_url + 'esearch' + mid_url + 'field=All%20Names&term=' + manifest_entry.common_name + end_url
         else:
             url = base_url + 'esummary' + mid_url + 'id=' + manifest_entry.taxon_id + end_url
-        data = search_session.get(url)
+        return url
 
+    @staticmethod
+    def ncbi_search(url):
+        search_session = requests.Session()
+        data = search_session.get(url)
         return data.json()
 
 
