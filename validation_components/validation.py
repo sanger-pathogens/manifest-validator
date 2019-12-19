@@ -1,4 +1,4 @@
-from validation_components.spreadsheet_parsing import SpreadsheetLoader
+from validation_components.spreadsheet_parsing import SpreadsheetLoader, ManifestEntry
 import argparse
 
 def validation_runner(arguments: argparse.Namespace):
@@ -7,19 +7,25 @@ def validation_runner(arguments: argparse.Namespace):
     all_entries = loader.load()
 
     error_list = []
-    registered_values = {}
+    registered_values = set()
     for manifest_entry in all_entries:
-        if manifest_entry.common_name == None or manifest_entry.taxon_id == None:
+        if not manifest_entry.common_name or not manifest_entry.taxon_id:
             error_list.append(report_error(manifest_entry, 1))
-        elif [manifest_entry.common_name, manifest_entry.taxon_id] in registered_values.values():
+        elif manifest_entry.query_id in registered_values:
             pass
         else:
-            pass
-
+            error = manifest_entry.query_ncbi(manifest_entry)
+            if error:
+                error_list.append(report_error(manifest_entry, error))
+            registered_values.add(manifest_entry.query_id)
+    if len(error_list) > 0:
+        raise Exception('Errors found within manifest:\n\t' + '\n\t'.join(error_list) + '\nPlease correct mistakes and validate again.')
+    else:
+        print('Manifest successfully validated, no errors found! :D')
 
 def report_error(query, error_code):
     if error_code == 1:
-        if query.common_name == None:
+        if not query.common_name:
             error = f'Error: single common name found at {query.sample_id}'
         else:
             error = f'Error: single taxon id found at {query.sample_id}'
