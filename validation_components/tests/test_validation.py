@@ -76,3 +76,14 @@ class TestNcbiQuerying(unittest.TestCase):
         mocked_search.return_value = {'result': {'7955': {'error': 'Doesnt exist'}}}
         returned_manifest = self.ncbi_queries.query_ncbi(self.fake_manifest)
         self.assertEqual(returned_manifest.ncbi_common_name, expected_common_name)
+
+class TestManifestEntry(unittest.TestCase):
+
+    def setUp(self):
+        sample_id = 'study_sample123'
+        common_name = 'Danio rerio'
+        taxon_id = 7955
+        self.fake_manifest = ss_parse.ManifestEntry(sample_id, common_name, taxon_id)
+
+    def test_report_error(self):
+        pass
