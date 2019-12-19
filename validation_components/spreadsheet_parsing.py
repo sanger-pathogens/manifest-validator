@@ -37,12 +37,11 @@ class ManifestEntry:
 
         if esearch:
             url = base_url + 'esearch' + mid_url + 'field=All%20Names&term=' + self.common_name + end_url
-            data = search_session.get(url)
-            return data.json()
         else:
             url = base_url + 'esummary' + mid_url + 'id=' + self.taxon_id + end_url
-            data = search_session.get(url)
-            return data.json()
+        data = search_session.get(url)
+
+        return data.json()
 
 
 class SpreadsheetLoader:
