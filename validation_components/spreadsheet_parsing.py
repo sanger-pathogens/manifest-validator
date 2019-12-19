@@ -2,43 +2,62 @@ import xlrd
 import requests
 
 class ManifestEntry:
-    '''A class construct for a single entry from the manifest submitted'''
+    '''A class construct for a single entry from the manifest submitted and query the entries when necessary'''
     def __init__(self, sample_id: str, common_name: str, taxon_id: int):
         self.sample_id = sample_id
         self.common_name = common_name
         self.taxon_id = str(taxon_id)
         self.ncbi_common_name = ''
         self.query_id = common_name + str(taxon_id)
+        self.error_code = None
 
-    def query_ncbi(self):
-        tax_id_json = self.ncbi_search(esearch=True)
+    def report_error(self):
+        if self.error_code == 1:
+            if not self.common_name:
+                error = f'Error: single common name found at {self.sample_id}'
+            else:
+                error = f'Error: single taxon id found at {self.sample_id}'
+        elif self.error_code == 2:
+            error = f'Error: NCBI cant find {self.common_name} official name for {self.taxon_id} is {self.ncbi_common_name}'
+        elif self.error_code == 3:
+            error = f'Error: {self.common_name} doesnt match {self.taxon_id} the official name for {self.taxon_id} is {self.ncbi_common_name}'
+        else:
+            error = None
+        return error
+
+class NcbiQuery:
+
+    @staticmethod
+    def query_ncbi(manifest_entry: object):
+        tax_id_json = NcbiQuery.ncbi_search(esearch=True)
         if 'esearchresult' in tax_id_json and 'idlist' in tax_id_json['esearchresult'] and len(
                 tax_id_json['esearchresult']['idlist']) == 1:
-            if tax_id_json['esearchresult']['idlist'][0] == self.taxon_id:
+            if tax_id_json['esearchresult']['idlist'][0] == manifest_entry.taxon_id:
                 return None
             else:
                 error = 3
         else:
             error = 2
 
-        common_name_json = self.ncbi_search(esearch=False)
-        if 'result' in common_name_json and self.taxon_id in common_name_json['result'] and 'scientificname' in \
-                common_name_json['result'][self.taxon_id]:
-            self.ncbi_common_name = tax_id_json['result'][self.taxon_id]['scientificname']
+        common_name_json = NcbiQuery.ncbi_search(esearch=False)
+        if 'result' in common_name_json and manifest_entry.taxon_id in common_name_json['result'] and 'scientificname' in \
+                common_name_json['result'][manifest_entry.taxon_id]:
+            manifest_entry.ncbi_common_name = tax_id_json['result'][manifest_entry.taxon_id]['scientificname']
         else:
-            self.ncbi_common_name = 'unkown as the taxon ID is invalid'
+            manifest_entry.ncbi_common_name = 'unkown as the taxon ID is invalid'
         return error
 
-    def ncbi_search(self, esearch: bool):
+    @staticmethod
+    def ncbi_search(manifest_entry, esearch: bool):
         mid_url = '.fcgi?db=taxonomy&'
         base_url = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/'
         end_url = '&retmode=json'
         search_session = requests.Session()
 
         if esearch:
-            url = base_url + 'esearch' + mid_url + 'field=All%20Names&term=' + self.common_name + end_url
+            url = base_url + 'esearch' + mid_url + 'field=All%20Names&term=' + manifest_entry.common_name + end_url
         else:
-            url = base_url + 'esummary' + mid_url + 'id=' + self.taxon_id + end_url
+            url = base_url + 'esummary' + mid_url + 'id=' + manifest_entry.taxon_id + end_url
         data = search_session.get(url)
 
         return data.json()
