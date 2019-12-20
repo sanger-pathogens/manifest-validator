@@ -13,7 +13,7 @@ if os.path.exists('VERSION'):
 
 setup(
     name='validation_components',
-    version=version,
+    version='3.7',
     description='What Charles did next',
 	long_description=read('README.md'),
     packages = ['validation_components'],
