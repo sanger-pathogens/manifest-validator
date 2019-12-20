@@ -1,7 +1,7 @@
 # Manifest Validator
 A python3 library to validate the taxonomy id and common names in a manifest spreadsheet
 
-[![Build Status](https://travis-ci.org/sanger-pathogens/manifest-validator.svg?branch=master)](https://travis-ci.org/sanger-pathogens/manifest-validator)
+[![Build Status](https://travis-ci.com/sanger-pathogens/manifest-validator.svg?branch=master)](https://travis-ci.com/sanger-pathogens/manifest-validator)
 [![codecov](https://codecov.io/gh/sanger-pathogens/manifest-validator/branch/master/graph/badge.svg)](https://codecov.io/gh/sanger-pathogens/manifest-validator)
 [![License: GPL v3](https://img.shields.io/badge/License-GPL%20v3-brightgreen.svg)](https://github.com/sanger-pathogens/seroba/blob/master/LICENSE)   
 
