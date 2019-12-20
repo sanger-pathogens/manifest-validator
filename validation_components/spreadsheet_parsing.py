@@ -5,20 +5,23 @@ import time
 
 class ManifestEntry:
     '''A class construct for a single entry from the manifest submitted and query the entries when necessary'''
-    def __init__(self, sample_id: str, common_name: str, taxon_id: int):
+    def __init__(self, sample_id: str, common_name, taxon_id):
         self.sample_id = sample_id
         self.common_name = common_name
-        self.taxon_id = str(taxon_id)
-        self.query_id = common_name + str(taxon_id)
+        self.taxon_id = taxon_id
+        if common_name and taxon_id:
+            self.query_id = common_name + str(taxon_id)
+        else:
+            self.query_id = 'invalid'
 
     def report_error(self, error_code, ncbi_common_name=None):
         if error_code == 1:
-            if not self.common_name and not self.taxon_id:
-                error = (f'Error: no taxonomy data found at {self.sample_id}')
-            elif self.common_name:
-                error = (f'Error: single common name found at {self.sample_id}')
+            if self.common_name:
+                error = (f'Error: Single common name found at {self.sample_id}')
+            elif self.taxon_id:
+                error = (f'Error: Single taxon id found at {self.sample_id}')
             else:
-                error = (f'Error: single taxon id found at {self.sample_id}')
+                error = (f'Error: No taxonomy data found at {self.sample_id}')
         elif error_code == 2:
             error = (f'Error: NCBI cant find {self.common_name}, the official name for {self.taxon_id} is {ncbi_common_name}')
         elif error_code == 3:
@@ -65,7 +68,7 @@ class NcbiQuery:
         common_name_json = self.ncbi_search(url)
         if 'result' in common_name_json and manifest_entry.taxon_id in common_name_json['result'] and 'scientificname' in \
                 common_name_json['result'][manifest_entry.taxon_id]:
-            ncbi_common_name = tax_id_json['result'][manifest_entry.taxon_id]['scientificname']
+            ncbi_common_name = common_name_json['result'][manifest_entry.taxon_id]['scientificname']
         else:
             ncbi_common_name = 'unkown as the taxon ID is invalid'
         return error_code, ncbi_common_name
@@ -120,7 +123,7 @@ class SpreadsheetLoader:
             common_name = self.__extract_cell_value(row, common_name_column)
             taxon_id = self.__extract_cell_value(row, taxon_id_column)
             sample_id = self.__extract_cell_value(row, sample_id_column)
-            if common_name is not None and taxon_id is not None and sample_id_column is not None:
+            if sample_id is not None:
                 entry = ManifestEntry(sample_id, common_name, taxon_id)
                 entries.append(entry)
         return entries
@@ -130,4 +133,5 @@ class SpreadsheetLoader:
         if self._sheet.cell_type(row, column) != xlrd.XL_CELL_NUMBER:
             new_data = self._sheet.cell_value(row, column).strip()
             return None if new_data == '' else new_data
-        return int(self._sheet.cell_value(row, column))
+        new_data = str(int(self._sheet.cell_value(row, column)))
+        return None if new_data == '' else new_data

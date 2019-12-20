@@ -16,12 +16,13 @@ def validation_runner(arguments: argparse.Namespace):
         elif manifest_entry.query_id in registered_values:
             pass
         else:
-            timestamp = NcbiQuery.generate_new_timestamp(timestamp)
-            error_code, ncbi_common_name = manifest_entry.NcbiQuery.query_ncbi(manifest_entry)
+            connecter = NcbiQuery()
+            timestamp = connecter.generate_new_timestamp(timestamp)
+            error_code, ncbi_common_name = connecter.query_ncbi(manifest_entry)
             if error_code:
                 error_list.append(manifest_entry.report_error(error_code, ncbi_common_name))
             registered_values.add(manifest_entry.query_id)
     if len(error_list) > 0:
-        raise Exception('Errors found within manifest:\n\t' + '\n\t'.join(error_list) + '\nPlease correct mistakes and validate again.')
+        print('Errors found within manifest:\n\t' + '\n\t'.join(error_list) + '\nPlease correct mistakes and validate again.')
     else:
         print('Manifest successfully validated, no errors found! :D')

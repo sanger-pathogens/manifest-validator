@@ -109,14 +109,22 @@ class TestManifestEntry(unittest.TestCase):
 
     def test_report_error_code_1_no_taxon_id(self):
         error_code = 1
-        expected_return = 'Error: single common name found at study_sample123'
+        expected_return = 'Error: Single common name found at study_sample123'
         actual_return = self.fake_manifest.report_error(error_code, self.ncbi_common_name)
         self.assertEqual(expected_return, actual_return)
 
     def test_report_error_code_1_no_common_name(self):
         error_code = 1
         self.fake_manifest.common_name = None
-        expected_return = 'Error: single taxon id found at study_sample123'
+        expected_return = 'Error: Single taxon id found at study_sample123'
+        actual_return = self.fake_manifest.report_error(error_code, self.ncbi_common_name)
+        self.assertEqual(expected_return, actual_return)
+
+    def test_report_error_code_1_no_data(self):
+        error_code = 1
+        self.fake_manifest.common_name = None
+        self.fake_manifest.taxon_id = None
+        expected_return = 'Error: No taxonomy data found at study_sample123'
         actual_return = self.fake_manifest.report_error(error_code, self.ncbi_common_name)
         self.assertEqual(expected_return, actual_return)
 
