@@ -13,7 +13,9 @@ class ManifestEntry:
 
     def report_error(self, error_code, ncbi_common_name=None):
         if error_code == 1:
-            if self.common_name:
+            if not self.common_name and not self.taxon_id:
+                error = (f'Error: no taxonomy data found at {self.sample_id}')
+            elif self.common_name:
                 error = (f'Error: single common name found at {self.sample_id}')
             else:
                 error = (f'Error: single taxon id found at {self.sample_id}')
@@ -29,15 +31,19 @@ class ManifestEntry:
 class NcbiQuery:
 
     @staticmethod
+    def get_now():
+        return datetime.now()
+
+    @staticmethod
     def generate_new_timestamp(previous_timestamp):
         if previous_timestamp != None:
-            time_since_last_query = datetime.now() - previous_timestamp
+            time_since_last_query = NcbiQuery.get_now() - previous_timestamp
 
             required_microsecond_delay = 335000
             if time_since_last_query.days == 0 and time_since_last_query.seconds == 0 and time_since_last_query.microseconds < required_microsecond_delay:
                 time.sleep((required_microsecond_delay - time_since_last_query.microseconds) / 1000000)
 
-        new_timestamp = datetime.now()
+        new_timestamp = NcbiQuery.get_now()
         return new_timestamp
 
 

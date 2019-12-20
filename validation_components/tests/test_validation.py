@@ -1,6 +1,7 @@
 import unittest
 from unittest.mock import patch, Mock
 from validation_components import spreadsheet_parsing as ss_parse
+from _datetime import datetime
 
 
 class TestNcbiQuerying(unittest.TestCase):
@@ -76,20 +77,26 @@ class TestNcbiQuerying(unittest.TestCase):
         returned_error, returned_common_name = self.ncbi_queries.query_ncbi(self.fake_manifest)
         self.assertEqual(returned_common_name, expected_common_name)
 
-    # @patch('time.wait')
-    # @patch('datetime.datetime.now', side_effect='setup_fake_time')
-    # def test_query_ncbi_name_found(self, mock_datetime, mock_waiting):
-    #     # previous_timestamp = TestNcbiQuerying.setup_fake_time()
-    #     # print(previous_timestamp.microseconds)
-    #     pass
-    #
-    # @staticmethod
-    # def setup_fake_time():
-    #     self = object
-    #     self.microseconds = 340000
-    #     self.seconds = 1
-    #     self.days = 1
-    #     return self
+    @patch('time.sleep')
+    @patch('validation_components.spreadsheet_parsing.NcbiQuery.get_now', return_value=datetime(2019, 12, 20, 14, 0, 59, 360000))
+    def test_get_time_enough_time_passed(self, mock_datetime, mock_waiting):
+        previous_timestamp = datetime(2019, 12, 20, 14, 0, 59, 0)
+        ss_parse.NcbiQuery.generate_new_timestamp(previous_timestamp)
+        mock_waiting.assert_not_called()
+
+    @patch('time.sleep')
+    @patch('validation_components.spreadsheet_parsing.NcbiQuery.get_now', return_value=datetime(2019, 12, 20, 14, 0, 59, 360000))
+    def test_get_time_not_enough_time_passed(self, mock_datetime, mock_waiting):
+        previous_timestamp = datetime(2019, 12, 20, 14, 0, 59, 360000)
+        ss_parse.NcbiQuery.generate_new_timestamp(previous_timestamp)
+        mock_waiting.assert_called_once()
+
+    @patch('time.sleep')
+    @patch('validation_components.spreadsheet_parsing.NcbiQuery.get_now', return_value=datetime(2019, 12, 20, 14, 0, 59, 360000))
+    def test_get_time_not_yet_established(self, mock_datetime, mock_waiting):
+        previous_timestamp = None
+        ss_parse.NcbiQuery.generate_new_timestamp(previous_timestamp)
+        mock_waiting.assert_not_called()
 
 class TestManifestEntry(unittest.TestCase):
 
