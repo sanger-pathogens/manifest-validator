@@ -11,15 +11,15 @@ def validation_runner(arguments: argparse.Namespace):
     timestamp = None
     for manifest_entry in all_entries:
         if not manifest_entry.common_name or not manifest_entry.taxon_id:
-            manifest_entry.error_code = 1
-            error_list.append(manifest_entry.report_error())
+            error_code = 1
+            error_list.append(manifest_entry.report_error(error_code))
         elif manifest_entry.query_id in registered_values:
             pass
         else:
             timestamp = NcbiQuery.generate_new_timestamp(timestamp)
-            manifest_entry = NcbiQuery.query_ncbi(manifest_entry)
-            if manifest_entry.error_code:
-                error_list.append(manifest_entry.report_error())
+            error_code, ncbi_common_name = manifest_entry.NcbiQuery.query_ncbi(manifest_entry)
+            if error_code:
+                error_list.append(manifest_entry.report_error(error_code, ncbi_common_name))
             registered_values.add(manifest_entry.query_id)
     if len(error_list) > 0:
         raise Exception('Errors found within manifest:\n\t' + '\n\t'.join(error_list) + '\nPlease correct mistakes and validate again.')

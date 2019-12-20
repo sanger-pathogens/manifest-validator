@@ -35,20 +35,19 @@ class TestNcbiQuerying(unittest.TestCase):
     @patch('validation_components.spreadsheet_parsing.NcbiQuery.build_url')
     @patch('validation_components.spreadsheet_parsing.NcbiQuery.ncbi_search')
     def test_query_ncbi_id_matches(self, mocked_search, mocked_url):
-        self.fake_manifest.error_code = 1
         self.fake_manifest.taxon_id = '7955'
         mocked_search.return_value = {'esearchresult': {'idlist': ['7955']}}
-        returned_manifest = self.ncbi_queries.query_ncbi(self.fake_manifest)
-        self.assertIsNone(returned_manifest.error_code)
+        returned_error, returned_common_name = self.ncbi_queries.query_ncbi(self.fake_manifest)
+        self.assertIsNone(returned_error)
+        self.assertIsNone(returned_common_name)
 
     @patch('validation_components.spreadsheet_parsing.NcbiQuery.build_url')
     @patch('validation_components.spreadsheet_parsing.NcbiQuery.ncbi_search')
     def test_query_ncbi_id_doesnt_match(self, mocked_search, mocked_url):
-        self.fake_manifest.error_code = 1
         self.fake_manifest.taxon_id = '5597'
         mocked_search.return_value = {'esearchresult': {'idlist': ['7955']}}
-        returned_manifest = self.ncbi_queries.query_ncbi(self.fake_manifest)
-        self.assertEqual(returned_manifest.error_code, 3)
+        returned_error, returned_common_name = self.ncbi_queries.query_ncbi(self.fake_manifest)
+        self.assertEqual(returned_error, 3)
 
     @patch('validation_components.spreadsheet_parsing.NcbiQuery.build_url')
     @patch('validation_components.spreadsheet_parsing.NcbiQuery.ncbi_search')
@@ -56,8 +55,8 @@ class TestNcbiQuerying(unittest.TestCase):
         self.fake_manifest.error_code = 1
         self.fake_manifest.taxon_id = '5597'
         mocked_search.return_value = {'esearchresult': {'idlist': ['7955', '7954']}}
-        returned_manifest = self.ncbi_queries.query_ncbi(self.fake_manifest)
-        self.assertEqual(returned_manifest.error_code, 2)
+        returned_error, returned_common_name = self.ncbi_queries.query_ncbi(self.fake_manifest)
+        self.assertEqual(returned_error, 2)
 
     @patch('validation_components.spreadsheet_parsing.NcbiQuery.build_url')
     @patch('validation_components.spreadsheet_parsing.NcbiQuery.ncbi_search')
@@ -65,8 +64,8 @@ class TestNcbiQuerying(unittest.TestCase):
         self.fake_manifest.taxon_id = '7955'
         expected_common_name = 'Danio rerio'
         mocked_search.return_value = {'result': {'7955': {'scientificname': 'Danio rerio'}}}
-        returned_manifest = self.ncbi_queries.query_ncbi(self.fake_manifest)
-        self.assertEqual(returned_manifest.ncbi_common_name, expected_common_name)
+        returned_error, returned_common_name = self.ncbi_queries.query_ncbi(self.fake_manifest)
+        self.assertEqual(returned_common_name, expected_common_name)
 
     @patch('validation_components.spreadsheet_parsing.NcbiQuery.build_url')
     @patch('validation_components.spreadsheet_parsing.NcbiQuery.ncbi_search')
@@ -74,23 +73,23 @@ class TestNcbiQuerying(unittest.TestCase):
         self.fake_manifest.taxon_id = '7955'
         expected_common_name = 'unkown as the taxon ID is invalid'
         mocked_search.return_value = {'result': {'7955': {'error': 'Doesnt exist'}}}
-        returned_manifest = self.ncbi_queries.query_ncbi(self.fake_manifest)
-        self.assertEqual(returned_manifest.ncbi_common_name, expected_common_name)
+        returned_error, returned_common_name = self.ncbi_queries.query_ncbi(self.fake_manifest)
+        self.assertEqual(returned_common_name, expected_common_name)
 
-    @patch('time.wait')
-    @patch('datetime.datetime.now', side_effect='setup_fake_time')
-    def test_query_ncbi_name_found(self, mock_datetime, mock_waiting):
-        # previous_timestamp = TestNcbiQuerying.setup_fake_time()
-        # print(previous_timestamp.microseconds)
-        pass
-
-    @staticmethod
-    def setup_fake_time():
-        self = object
-        self.microseconds = 340000
-        self.seconds = 1
-        self.days = 1
-        return self
+    # @patch('time.wait')
+    # @patch('datetime.datetime.now', side_effect='setup_fake_time')
+    # def test_query_ncbi_name_found(self, mock_datetime, mock_waiting):
+    #     # previous_timestamp = TestNcbiQuerying.setup_fake_time()
+    #     # print(previous_timestamp.microseconds)
+    #     pass
+    #
+    # @staticmethod
+    # def setup_fake_time():
+    #     self = object
+    #     self.microseconds = 340000
+    #     self.seconds = 1
+    #     self.days = 1
+    #     return self
 
 class TestManifestEntry(unittest.TestCase):
 
@@ -99,31 +98,31 @@ class TestManifestEntry(unittest.TestCase):
         common_name = 'Danio rerio'
         taxon_id = 7955
         self.fake_manifest = ss_parse.ManifestEntry(sample_id, common_name, taxon_id)
-        self.fake_manifest.ncbi_common_name = 'Real Common Name'
+        self.ncbi_common_name = 'Real Common Name'
 
     def test_report_error_code_1_no_taxon_id(self):
-        self.fake_manifest.error_code = 1
+        error_code = 1
         expected_return = 'Error: single common name found at study_sample123'
-        actual_return = self.fake_manifest.report_error()
+        actual_return = self.fake_manifest.report_error(error_code, self.ncbi_common_name)
         self.assertEqual(expected_return, actual_return)
 
     def test_report_error_code_1_no_common_name(self):
+        error_code = 1
         self.fake_manifest.common_name = None
-        self.fake_manifest.error_code = 1
         expected_return = 'Error: single taxon id found at study_sample123'
-        actual_return = self.fake_manifest.report_error()
+        actual_return = self.fake_manifest.report_error(error_code, self.ncbi_common_name)
         self.assertEqual(expected_return, actual_return)
 
     def test_report_error_code_2_common_name_spelling(self):
-        self.fake_manifest.error_code = 2
+        error_code = 2
         expected_return = 'Error: NCBI cant find Danio rerio, the official name for 7955 is Real Common Name'
-        actual_return = self.fake_manifest.report_error()
+        actual_return = self.fake_manifest.report_error(error_code, self.ncbi_common_name)
         self.assertEqual(expected_return, actual_return)
 
     def test_report_error_code_3_common_name_not_matching_taxon(self):
-        self.fake_manifest.error_code = 3
+        error_code = 3
         expected_return = 'Error: Danio rerio doesnt match 7955 the official name for 7955 is Real Common Name'
-        actual_return = self.fake_manifest.report_error()
+        actual_return = self.fake_manifest.report_error(error_code, self.ncbi_common_name)
         self.assertEqual(expected_return, actual_return)
 
 if __name__ == '__main__':
