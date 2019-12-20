@@ -13,12 +13,12 @@ class ManifestEntry:
 
     def report_error(self):
         if self.error_code == 1:
-            if not self.common_name:
+            if self.common_name:
                 error = f'Error: single common name found at {self.sample_id}'
             else:
                 error = f'Error: single taxon id found at {self.sample_id}'
         elif self.error_code == 2:
-            error = f'Error: NCBI cant find {self.common_name} official name for {self.taxon_id} is {self.ncbi_common_name}'
+            error = f'Error: NCBI cant find {self.common_name}, the official name for {self.taxon_id} is {self.ncbi_common_name}'
         elif self.error_code == 3:
             error = f'Error: {self.common_name} doesnt match {self.taxon_id} the official name for {self.taxon_id} is {self.ncbi_common_name}'
         else:
