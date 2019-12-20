@@ -1,5 +1,7 @@
 import xlrd
 import requests
+from datetime import datetime
+import time
 
 class ManifestEntry:
     '''A class construct for a single entry from the manifest submitted and query the entries when necessary'''
@@ -29,9 +31,21 @@ class ManifestEntry:
 class NcbiQuery:
 
     @staticmethod
-    def query_ncbi(manifest_entry: object):
-        url = NcbiQuery.build_url(manifest_entry, esearch=True)
-        tax_id_json = NcbiQuery.ncbi_search(url)
+    def generate_new_timestamp(previous_timestamp):
+        if previous_timestamp != None:
+            time_since_last_query = datetime.now() - previous_timestamp
+
+            required_microsecond_delay = 335000
+            if time_since_last_query.days == 0 and time_since_last_query.seconds == 0 and time_since_last_query.microseconds < required_microsecond_delay:
+                time.sleep((required_microsecond_delay - time_since_last_query.microseconds) / 1000000)
+
+        new_timestamp = datetime.now()
+        return new_timestamp
+
+
+    def query_ncbi(self, manifest_entry: object):
+        url = self.build_url(manifest_entry, esearch=True)
+        tax_id_json = self.ncbi_search(url)
         if 'esearchresult' in tax_id_json and 'idlist' in tax_id_json['esearchresult'] and len(
                 tax_id_json['esearchresult']['idlist']) == 1:
             if tax_id_json['esearchresult']['idlist'][0] == manifest_entry.taxon_id:
@@ -51,8 +65,7 @@ class NcbiQuery:
             manifest_entry.ncbi_common_name = 'unkown as the taxon ID is invalid'
         return manifest_entry
 
-    @staticmethod
-    def build_url(manifest_entry, esearch: bool):
+    def build_url(self, manifest_entry, esearch: bool):
         mid_url = '.fcgi?db=taxonomy&'
         base_url = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/'
         end_url = '&retmode=json'
@@ -62,8 +75,8 @@ class NcbiQuery:
             url = base_url + 'esummary' + mid_url + 'id=' + manifest_entry.taxon_id + end_url
         return url
 
-    @staticmethod
-    def ncbi_search(url):
+
+    def ncbi_search(self, url):
         search_session = requests.Session()
         data = search_session.get(url)
         return data.json()

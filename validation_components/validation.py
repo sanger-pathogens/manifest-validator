@@ -8,6 +8,7 @@ def validation_runner(arguments: argparse.Namespace):
 
     error_list = []
     registered_values = set()
+    timestamp = None
     for manifest_entry in all_entries:
         if not manifest_entry.common_name or not manifest_entry.taxon_id:
             manifest_entry.error_code = 1
@@ -15,6 +16,7 @@ def validation_runner(arguments: argparse.Namespace):
         elif manifest_entry.query_id in registered_values:
             pass
         else:
+            timestamp = NcbiQuery.generate_new_timestamp(timestamp)
             manifest_entry = NcbiQuery.query_ncbi(manifest_entry)
             if manifest_entry.error_code:
                 error_list.append(manifest_entry.report_error())

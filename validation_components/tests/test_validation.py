@@ -77,6 +77,21 @@ class TestNcbiQuerying(unittest.TestCase):
         returned_manifest = self.ncbi_queries.query_ncbi(self.fake_manifest)
         self.assertEqual(returned_manifest.ncbi_common_name, expected_common_name)
 
+    @patch('time.wait')
+    @patch('datetime.datetime.now', side_effect='setup_fake_time')
+    def test_query_ncbi_name_found(self, mock_datetime, mock_waiting):
+        # previous_timestamp = TestNcbiQuerying.setup_fake_time()
+        # print(previous_timestamp.microseconds)
+        pass
+
+    @staticmethod
+    def setup_fake_time():
+        self = object
+        self.microseconds = 340000
+        self.seconds = 1
+        self.days = 1
+        return self
+
 class TestManifestEntry(unittest.TestCase):
 
     def setUp(self):
@@ -110,3 +125,6 @@ class TestManifestEntry(unittest.TestCase):
         expected_return = 'Error: Danio rerio doesnt match 7955 the official name for 7955 is Real Common Name'
         actual_return = self.fake_manifest.report_error()
         self.assertEqual(expected_return, actual_return)
+
+if __name__ == '__main__':
+    unittest.main()
