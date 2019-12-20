@@ -80,7 +80,7 @@ class NcbiQuery:
         if esearch:
             url = base_url + 'esearch' + mid_url + 'field=All%20Names&term=' + manifest_entry.common_name + end_url
         else:
-            url = base_url + 'esummary' + mid_url + 'id=' + manifest_entry.taxon_id + end_url
+            url = base_url + 'esummary' + mid_url + 'id=' + str(manifest_entry.taxon_id) + end_url
         return url
 
 
