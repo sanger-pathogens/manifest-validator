@@ -9,27 +9,36 @@ class ManifestEntry:
         self.sample_id = sample_id
         self.common_name = common_name
         self.taxon_id = taxon_id
-        if common_name and taxon_id:
-            self.query_id = common_name + str(taxon_id)
-        else:
-            self.query_id = 'invalid'
+        self.query_id = common_name + str(taxon_id)
 
-    def report_error(self, error_code, ncbi_common_name=None):
+    def report_error(self, error_code, common_name_statement=None, taxon_id_statement=None):
         if error_code == 1:
-            if self.common_name:
-                error = (f'Error: Single common name found at {self.sample_id}')
-            elif self.taxon_id:
-                error = (f'Error: Single taxon id found at {self.sample_id}')
-            else:
-                error = (f'Error: No taxonomy data found at {self.sample_id}')
+            error = (f"{self.sample_id}: No taxon ID or common name specified. "
+                     f"If unkown please use 32644 - 'unidentified'.")
         elif error_code == 2:
-            error = (f'Error: NCBI cant find {self.common_name}, the official name for {self.taxon_id} is {ncbi_common_name}')
-        elif error_code == 3:
-            error = (f'Error: {self.common_name} doesnt match {self.taxon_id} the official name for {self.taxon_id} is {ncbi_common_name}')
+            error = (f"{self.sample_id}: Taxon ID and common name don't match. " + common_name_statement
+                     + taxon_id_statement)
         else:
-            error = None
+            error = (f"{self.sample_id}: " + common_name_statement + taxon_id_statement)
         return error
 
+    def common_name_definition(self, ncbi_result):
+        if self.common_name == '__null__':
+            statement = 'No common name specified.'
+        elif ncbi_result == '__null__':
+            statement = f"The common name '{self.common_name}' does not exist in the NCBI database."
+        else:
+            statement = f"The taxon ID for given name '{self.common_name}' is {ncbi_result}."
+        return statement
+
+    def taxon_id_definition(self, ncbi_result=None):
+        if self.taxon_id == '__null__':
+            statement = 'No taxon ID specified.'
+        elif ncbi_result == '__null__':
+            statement = 'The taxon ID is not officially recognised by NCBI.'
+        else:
+            statement = f"The official name for the given taxon ID {self.taxon_id} is '{ncbi_result}'."
+        return statement
 
 class NcbiQuery:
 
@@ -50,28 +59,27 @@ class NcbiQuery:
         return new_timestamp
 
 
-    def query_ncbi(self, manifest_entry: object):
+    def query_ncbi_for_taxon_id(self, manifest_entry: object):
         url = self.build_url(manifest_entry, esearch=True)
         tax_id_json = self.ncbi_search(url)
         if 'esearchresult' in tax_id_json and 'idlist' in tax_id_json['esearchresult'] and len(
                 tax_id_json['esearchresult']['idlist']) == 1:
             if tax_id_json['esearchresult']['idlist'][0] == manifest_entry.taxon_id:
-                error_code = None
-                ncbi_common_name = None
-                return error_code, ncbi_common_name
+                return None
             else:
-                error_code = 3
+                return str(tax_id_json['esearchresult']['idlist'][0])
         else:
-            error_code = 2
+            return str('__null__')
 
+    def query_ncbi_for_common_name(self, manifest_entry: object):
         url = self.build_url(manifest_entry, esearch=False)
         common_name_json = self.ncbi_search(url)
         if 'result' in common_name_json and manifest_entry.taxon_id in common_name_json['result'] and 'scientificname' in \
                 common_name_json['result'][manifest_entry.taxon_id]:
             ncbi_common_name = common_name_json['result'][manifest_entry.taxon_id]['scientificname']
         else:
-            ncbi_common_name = 'unkown as the taxon ID is invalid'
-        return error_code, ncbi_common_name
+            ncbi_common_name = '__null__'
+        return ncbi_common_name
 
     def build_url(self, manifest_entry, esearch: bool):
         mid_url = '.fcgi?db=taxonomy&'
@@ -132,6 +140,6 @@ class SpreadsheetLoader:
     def __extract_cell_value(self, row, column):
         if self._sheet.cell_type(row, column) != xlrd.XL_CELL_NUMBER:
             new_data = self._sheet.cell_value(row, column).strip()
-            return None if new_data == '' else new_data
+            return '__null__' if new_data == '' else new_data
         new_data = str(int(self._sheet.cell_value(row, column)))
-        return None if new_data == '' else new_data
+        return '__null__' if new_data == '' else new_data

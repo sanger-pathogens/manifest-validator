@@ -1,6 +1,6 @@
 import unittest
-from unittest.mock import patch, Mock
-from validation_components import spreadsheet_parsing as ss_parse
+from unittest.mock import patch
+from validation_components import spreadsheet_parsing as ss_parse, validation as vl
 from _datetime import datetime
 
 
@@ -38,8 +38,7 @@ class TestNcbiQuerying(unittest.TestCase):
     def test_query_ncbi_id_matches(self, mocked_search, mocked_url):
         self.fake_manifest.taxon_id = '7955'
         mocked_search.return_value = {'esearchresult': {'idlist': ['7955']}}
-        returned_error, returned_common_name = self.ncbi_queries.query_ncbi(self.fake_manifest)
-        self.assertIsNone(returned_error)
+        returned_common_name = self.ncbi_queries.query_ncbi_for_taxon_id(self.fake_manifest)
         self.assertIsNone(returned_common_name)
 
     @patch('validation_components.spreadsheet_parsing.NcbiQuery.build_url')
@@ -47,8 +46,8 @@ class TestNcbiQuerying(unittest.TestCase):
     def test_query_ncbi_id_doesnt_match(self, mocked_search, mocked_url):
         self.fake_manifest.taxon_id = '5597'
         mocked_search.return_value = {'esearchresult': {'idlist': ['7955']}}
-        returned_error, returned_common_name = self.ncbi_queries.query_ncbi(self.fake_manifest)
-        self.assertEqual(returned_error, 3)
+        returned_common_name = self.ncbi_queries.query_ncbi_for_common_name(self.fake_manifest)
+        self.assertEqual(returned_common_name, 3)
 
     @patch('validation_components.spreadsheet_parsing.NcbiQuery.build_url')
     @patch('validation_components.spreadsheet_parsing.NcbiQuery.ncbi_search')
@@ -56,8 +55,8 @@ class TestNcbiQuerying(unittest.TestCase):
         self.fake_manifest.error_code = 1
         self.fake_manifest.taxon_id = '5597'
         mocked_search.return_value = {'esearchresult': {'idlist': ['7955', '7954']}}
-        returned_error, returned_common_name = self.ncbi_queries.query_ncbi(self.fake_manifest)
-        self.assertEqual(returned_error, 2)
+        returned_error, returned_common_name = self.ncbi_queries.query_ncbi_for_taxon_id(self.fake_manifest)
+        self.assertEqual(returned_common_name, 2)
 
     @patch('validation_components.spreadsheet_parsing.NcbiQuery.build_url')
     @patch('validation_components.spreadsheet_parsing.NcbiQuery.ncbi_search')
@@ -65,7 +64,7 @@ class TestNcbiQuerying(unittest.TestCase):
         self.fake_manifest.taxon_id = '7955'
         expected_common_name = 'Danio rerio'
         mocked_search.return_value = {'result': {'7955': {'scientificname': 'Danio rerio'}}}
-        returned_error, returned_common_name = self.ncbi_queries.query_ncbi(self.fake_manifest)
+        returned_error, returned_common_name = self.ncbi_queries.query_ncbi_for_common_name(self.fake_manifest)
         self.assertEqual(returned_common_name, expected_common_name)
 
     @patch('validation_components.spreadsheet_parsing.NcbiQuery.build_url')
@@ -74,29 +73,33 @@ class TestNcbiQuerying(unittest.TestCase):
         self.fake_manifest.taxon_id = '7955'
         expected_common_name = 'unkown as the taxon ID is invalid'
         mocked_search.return_value = {'result': {'7955': {'error': 'Doesnt exist'}}}
-        returned_error, returned_common_name = self.ncbi_queries.query_ncbi(self.fake_manifest)
+        returned_error, returned_common_name = self.ncbi_queries.query_ncbi_for_common_name(self.fake_manifest)
         self.assertEqual(returned_common_name, expected_common_name)
 
     @patch('time.sleep')
-    @patch('validation_components.spreadsheet_parsing.NcbiQuery.get_now', return_value=datetime(2019, 12, 20, 14, 0, 59, 360000))
+    @patch('validation_components.spreadsheet_parsing.NcbiQuery.get_now',
+           return_value=datetime(2019, 12, 20, 14, 0, 59, 360000))
     def test_get_time_enough_time_passed(self, mock_datetime, mock_waiting):
         previous_timestamp = datetime(2019, 12, 20, 14, 0, 59, 0)
         ss_parse.NcbiQuery.generate_new_timestamp(previous_timestamp)
         mock_waiting.assert_not_called()
 
     @patch('time.sleep')
-    @patch('validation_components.spreadsheet_parsing.NcbiQuery.get_now', return_value=datetime(2019, 12, 20, 14, 0, 59, 360000))
+    @patch('validation_components.spreadsheet_parsing.NcbiQuery.get_now',
+           return_value=datetime(2019, 12, 20, 14, 0, 59, 360000))
     def test_get_time_not_enough_time_passed(self, mock_datetime, mock_waiting):
         previous_timestamp = datetime(2019, 12, 20, 14, 0, 59, 360000)
         ss_parse.NcbiQuery.generate_new_timestamp(previous_timestamp)
         mock_waiting.assert_called_once()
 
     @patch('time.sleep')
-    @patch('validation_components.spreadsheet_parsing.NcbiQuery.get_now', return_value=datetime(2019, 12, 20, 14, 0, 59, 360000))
+    @patch('validation_components.spreadsheet_parsing.NcbiQuery.get_now',
+           return_value=datetime(2019, 12, 20, 14, 0, 59, 360000))
     def test_get_time_not_yet_established(self, mock_datetime, mock_waiting):
         previous_timestamp = None
         ss_parse.NcbiQuery.generate_new_timestamp(previous_timestamp)
         mock_waiting.assert_not_called()
+
 
 class TestManifestEntry(unittest.TestCase):
 
@@ -139,6 +142,31 @@ class TestManifestEntry(unittest.TestCase):
         expected_return = 'Error: Danio rerio doesnt match 7955 the official name for 7955 is Real Common Name'
         actual_return = self.fake_manifest.report_error(error_code, self.ncbi_common_name)
         self.assertEqual(expected_return, actual_return)
+
+
+class TestValidationRunner:
+
+    class Namespace:
+        def __init__(self, **kwargs):
+            self.__dict__.update(kwargs)
+
+    @patch('validation_components.spreadsheet_parsing.SpreadsheetLoader')
+    @patch('validation_components.spreadsheet_parsing.NcbiQuery')
+    @patch('validation_components.spreadsheet_parsing.ManifestEntry')
+    def test_successful_validation(self, mocked_manifest, mocked_query, mocked_spreadsheetloader):
+        Argparse_with_spreadsheet = self.Namespace(spreadsheet='directory/spreadsheet.xlsx')
+        vl.validation_runner(Argparse_with_spreadsheet)
+
+        # 3 forms of missing data errors correct calling
+        # 2 mismatch data errors correct calling
+        # successful validation calls
+        # pre-existing data calls
+
+class TestSpreadsheetParsing:
+
+    def test_empty_row_ignored(self):
+        pass
+
 
 if __name__ == '__main__':
     unittest.main()

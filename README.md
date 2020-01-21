@@ -43,18 +43,29 @@ Include installation instructions for the following where appropriate:
 
 ### Linux specific instructions (Debian, Ubuntu, RedHat etc.) 
 ### Mac OS
-### Bioconda
 ### Homebrew/Linuxbrew
 ### Docker
 ### Virtual Machine
-### Galaxy
 ### From Source
 
 ### Running the tests
 Instructions on how to run the tests and check that the software has installed correctly.
 
 ## Usage
-Usage/output of running the --help option for the software. After this, include an example usage of the software, the bare minimum to get up and running (like a quick start guide) and describe the required input data and output files produced. This should be brief. For more information see the website and Jupyter tutorial (add links to these if relevant).
+```
+positional arguments:
+  spreadsheet  Manifest spreadsheet to be checked for matching taxon and
+               common name
+
+optional arguments:
+  -h, --help   show this help message and exit
+
+  manifest-validator path/spreadsheet.xlsx
+```
+
+Enter the command as shown above, replacing 'path/spreadsheet.xlsx' with your own manifest.spreadsheet
+After this, follow the errors in the terminal output to clean the manifest before retesting and submitting.
+
 
 ## License
 <software name> is free software, licensed under [<license>](link_to_license_file_on_github).

@@ -7,22 +7,49 @@ def validation_runner(arguments: argparse.Namespace):
     all_entries = loader.load()
 
     error_list = []
-    registered_values = set()
+    registered_values = {'__nul____nul__': [1, None, None]}
     timestamp = None
     for manifest_entry in all_entries:
-        if not manifest_entry.common_name or not manifest_entry.taxon_id:
-            error_code = 1
-            error_list.append(manifest_entry.report_error(error_code))
-        elif manifest_entry.query_id in registered_values:
-            pass
+        if manifest_entry.query_id in registered_values.keys:
+            error_code = registered_values[manifest_entry.query_id][0]
+            common_name_statement = registered_values[manifest_entry.query_id][1]
+            taxon_id_statement = registered_values[manifest_entry.query_id][2]
+            if error_code != 0:
+                error_list.append(manifest_entry.report_error(error_code, common_name_statement, taxon_id_statement))
+
         else:
             connecter = NcbiQuery()
-            timestamp = connecter.generate_new_timestamp(timestamp)
-            error_code, ncbi_common_name = connecter.query_ncbi(manifest_entry)
-            if error_code:
-                error_list.append(manifest_entry.report_error(error_code, ncbi_common_name))
-            registered_values.add(manifest_entry.query_id)
+
+            if manifest_entry.common_name != '__nul__':
+                timestamp = connecter.generate_new_timestamp(timestamp)
+                ncbi_taxon_id = connecter.query_ncbi_for_taxon_id(manifest_entry)
+            else:
+                ncbi_taxon_id = None
+
+            if manifest_entry.taxon_id == ncbi_taxon_id:
+                error_code = 0
+                common_name_statement = None
+                taxon_id_statement = None
+            else:
+                if manifest_entry.taxon_id != '__nul__':
+                    timestamp = connecter.generate_new_timestamp(timestamp)
+                    ncbi_common_name = connecter.query_ncbi_for_common_name(manifest_entry)
+                else:
+                    ncbi_common_name = None
+
+                if ncbi_common_name != None and ncbi_common_name != '__null__' and ncbi_taxon_id != None and ncbi_taxon_id != '__null__':
+                    error_code = 2
+                else:
+                    error_code = 3
+
+                common_name_statement = manifest_entry.common_name_definition(ncbi_taxon_id)
+                taxon_id_statement = manifest_entry.taxon_id_definition(ncbi_common_name)
+
+            if error_code != 0:
+                error_list.append(manifest_entry.report_error(error_code, common_name_statement, taxon_id_statement))
+            registered_values[manifest_entry.query_id] = (error_code, common_name_statement, taxon_id_statement)
+
     if len(error_list) > 0:
         print('Errors found within manifest:\n\t' + '\n\t'.join(error_list) + '\nPlease correct mistakes and validate again.')
     else:
-        print('Manifest successfully validated, no errors found! :D')
+        print('Manifest successfully validated, no errors found!')

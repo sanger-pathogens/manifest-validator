@@ -9,5 +9,4 @@ parser.add_argument('spreadsheet', type=str,
 args = parser.parse_args()
 validation_runner(args)
 
-	# TODO: Add connection error exceptions
 	# TODO: Add parser and main function testing
