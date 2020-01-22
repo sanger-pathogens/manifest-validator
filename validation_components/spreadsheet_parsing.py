@@ -24,11 +24,11 @@ class ManifestEntry:
 
     def common_name_definition(self, ncbi_result):
         if self.common_name == '__null__':
-            statement = 'No common name specified.'
+            statement = 'No common name specified. '
         elif ncbi_result == '__null__':
-            statement = f"The common name '{self.common_name}' does not exist in the NCBI database."
+            statement = f"The common name '{self.common_name}' does not exist in the NCBI database. "
         else:
-            statement = f"The taxon ID for given name '{self.common_name}' is {ncbi_result}."
+            statement = f"The taxon ID for given name '{self.common_name}' is {ncbi_result}. "
         return statement
 
     def taxon_id_definition(self, ncbi_result=None):
@@ -64,10 +64,7 @@ class NcbiQuery:
         tax_id_json = self.ncbi_search(url)
         if 'esearchresult' in tax_id_json and 'idlist' in tax_id_json['esearchresult'] and len(
                 tax_id_json['esearchresult']['idlist']) == 1:
-            if tax_id_json['esearchresult']['idlist'][0] == manifest_entry.taxon_id:
-                return None
-            else:
-                return str(tax_id_json['esearchresult']['idlist'][0])
+            return str(tax_id_json['esearchresult']['idlist'][0])
         else:
             return str('__null__')
 

@@ -6,11 +6,21 @@ def validation_runner(arguments: argparse.Namespace):
     loader = SpreadsheetLoader(arguments.spreadsheet)
     all_entries = loader.load()
 
+    error_list = verify_entries(all_entries)
+
+    if len(error_list) > 0:
+        print('Errors found within manifest:\n\t' + '\n\t'.join(error_list) + '\nPlease correct mistakes and validate again.')
+    else:
+        print('Manifest successfully validated, no errors found!')
+
+
+def verify_entries(all_entries):
     error_list = []
-    registered_values = {'__nul____nul__': [1, None, None]}
+    registered_values = {'__null____null__': [1, None, None]}
     timestamp = None
     for manifest_entry in all_entries:
-        if manifest_entry.query_id in registered_values.keys:
+        if manifest_entry.query_id in registered_values.keys():
+            print(manifest_entry.common_name, manifest_entry.taxon_id)
             error_code = registered_values[manifest_entry.query_id][0]
             common_name_statement = registered_values[manifest_entry.query_id][1]
             taxon_id_statement = registered_values[manifest_entry.query_id][2]
@@ -48,8 +58,4 @@ def validation_runner(arguments: argparse.Namespace):
             if error_code != 0:
                 error_list.append(manifest_entry.report_error(error_code, common_name_statement, taxon_id_statement))
             registered_values[manifest_entry.query_id] = (error_code, common_name_statement, taxon_id_statement)
-
-    if len(error_list) > 0:
-        print('Errors found within manifest:\n\t' + '\n\t'.join(error_list) + '\nPlease correct mistakes and validate again.')
-    else:
-        print('Manifest successfully validated, no errors found!')
+    return error_list
