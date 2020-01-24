@@ -20,7 +20,6 @@ def verify_entries(all_entries):
     timestamp = None
     for manifest_entry in all_entries:
         if manifest_entry.query_id in registered_values.keys():
-            print(manifest_entry.common_name, manifest_entry.taxon_id)
             error_code = registered_values[manifest_entry.query_id][0]
             common_name_statement = registered_values[manifest_entry.query_id][1]
             taxon_id_statement = registered_values[manifest_entry.query_id][2]
@@ -30,32 +29,41 @@ def verify_entries(all_entries):
         else:
             connecter = NcbiQuery()
 
-            if manifest_entry.common_name != '__nul__':
-                timestamp = connecter.generate_new_timestamp(timestamp)
-                ncbi_taxon_id = connecter.query_ncbi_for_taxon_id(manifest_entry)
-            else:
-                ncbi_taxon_id = None
+            common_name_statement, ncbi_taxon_id, timestamp = resolve_common_name(connecter, manifest_entry,
+                                                                                  timestamp)
 
             if manifest_entry.taxon_id == ncbi_taxon_id:
                 error_code = 0
                 common_name_statement = None
                 taxon_id_statement = None
             else:
-                if manifest_entry.taxon_id != '__nul__':
-                    timestamp = connecter.generate_new_timestamp(timestamp)
-                    ncbi_common_name = connecter.query_ncbi_for_common_name(manifest_entry)
-                else:
-                    ncbi_common_name = None
-
-                if ncbi_common_name != None and ncbi_common_name != '__null__' and ncbi_taxon_id != None and ncbi_taxon_id != '__null__':
-                    error_code = 2
-                else:
-                    error_code = 3
-
-                common_name_statement = manifest_entry.common_name_definition(ncbi_taxon_id)
-                taxon_id_statement = manifest_entry.taxon_id_definition(ncbi_common_name)
+                error_code, taxon_id_statement, timestamp = resolve_taxon_id(connecter, manifest_entry, timestamp, ncbi_taxon_id)
 
             if error_code != 0:
                 error_list.append(manifest_entry.report_error(error_code, common_name_statement, taxon_id_statement))
             registered_values[manifest_entry.query_id] = (error_code, common_name_statement, taxon_id_statement)
     return error_list
+
+
+def resolve_taxon_id(connecter, manifest_entry, timestamp, ncbi_taxon_id):
+    if manifest_entry.taxon_id != '__null__':
+        timestamp = connecter.generate_new_timestamp(timestamp)
+        ncbi_common_name = connecter.query_ncbi_for_common_name(manifest_entry)
+    else:
+        ncbi_common_name = "__null__"
+    if ncbi_common_name != '__null__' and ncbi_taxon_id != '__null__':
+        error_code = 2
+    else:
+        error_code = 3
+    taxon_id_statement = manifest_entry.taxon_id_definition(ncbi_common_name)
+    return error_code, taxon_id_statement, timestamp
+
+
+def resolve_common_name(connecter, manifest_entry, timestamp):
+    if manifest_entry.common_name != '__null__':
+        timestamp = connecter.generate_new_timestamp(timestamp)
+        ncbi_taxon_id = connecter.query_ncbi_for_taxon_id(manifest_entry)
+    else:
+        ncbi_taxon_id = '__null__'
+    common_name_statement = manifest_entry.common_name_definition(ncbi_taxon_id)
+    return common_name_statement, ncbi_taxon_id, timestamp

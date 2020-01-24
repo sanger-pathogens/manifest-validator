@@ -128,7 +128,7 @@ class SpreadsheetLoader:
             common_name = self.__extract_cell_value(row, common_name_column)
             taxon_id = self.__extract_cell_value(row, taxon_id_column)
             sample_id = self.__extract_cell_value(row, sample_id_column)
-            if sample_id is not None:
+            if sample_id is not '__null__':
                 entry = ManifestEntry(sample_id, common_name, taxon_id)
                 entries.append(entry)
         return entries
