@@ -2,7 +2,7 @@ import unittest
 import os
 
 from unittest.mock import patch, MagicMock
-from validation_components import spreadsheet_parsing as ss_parse, validation as vl
+from validation_components import manifest_querying as m_query, validation as vl
 from _datetime import datetime
 
 
@@ -12,8 +12,8 @@ class TestNcbiQuerying(unittest.TestCase):
         sample_id = 'study_sample123'
         common_name = 'Danio rerio'
         taxon_id = '7955'
-        self.fake_manifest = ss_parse.ManifestEntry(sample_id, common_name, taxon_id)
-        self.ncbi_queries = ss_parse.NcbiQuery()
+        self.fake_manifest = m_query.ManifestEntry(sample_id, common_name, taxon_id)
+        self.ncbi_queries = m_query.NcbiQuery()
 
     class MockedNcbiQuery:
         def __init__(self):
@@ -78,7 +78,7 @@ class TestNcbiQuerying(unittest.TestCase):
     def test_get_time_enough_time_passed(self, mock_datetime, mock_waiting):
         previous_timestamp = self.MockedNcbiQuery()
         previous_timestamp.timestamp = datetime(2019, 12, 20, 14, 0, 59, 0)
-        ss_parse.NcbiQuery.generate_new_timestamp(previous_timestamp)
+        m_query.NcbiQuery.generate_new_timestamp(previous_timestamp)
         mock_waiting.assert_not_called()
 
     @patch('time.sleep')
@@ -87,7 +87,7 @@ class TestNcbiQuerying(unittest.TestCase):
     def test_get_time_not_enough_time_passed(self, mock_datetime, mock_waiting):
         previous_timestamp = self.MockedNcbiQuery()
         previous_timestamp.timestamp = datetime(2019, 12, 20, 14, 0, 59, 360000)
-        ss_parse.NcbiQuery.generate_new_timestamp(previous_timestamp)
+        m_query.NcbiQuery.generate_new_timestamp(previous_timestamp)
         mock_waiting.assert_called_once()
 
     @patch('time.sleep')
@@ -95,7 +95,7 @@ class TestNcbiQuerying(unittest.TestCase):
            return_value=datetime(2019, 12, 20, 14, 0, 59, 360000))
     def test_get_time_not_yet_established(self, mock_datetime, mock_waiting):
         previous_timestamp = self.MockedNcbiQuery()
-        ss_parse.NcbiQuery.generate_new_timestamp(previous_timestamp)
+        m_query.NcbiQuery.generate_new_timestamp(previous_timestamp)
         mock_waiting.assert_not_called()
 
 
@@ -105,7 +105,7 @@ class TestManifestEntry(unittest.TestCase):
         sample_id = 'study_sample123'
         common_name = 'Danio rerio'
         taxon_id = '7955'
-        self.fake_manifest = ss_parse.ManifestEntry(sample_id, common_name, taxon_id)
+        self.fake_manifest = m_query.ManifestEntry(sample_id, common_name, taxon_id)
         self.ncbi_common_name = 'Real Common Name'
 
     def test_report_error_code_1_unmatched_returns(self):
@@ -173,7 +173,7 @@ class TestValidationRunner(unittest.TestCase):
         sample_id = ''
         common_name = ''
         taxon_id = ''
-        self.fake_manifest = ss_parse.ManifestEntry(sample_id, common_name, taxon_id)
+        self.fake_manifest = m_query.ManifestEntry(sample_id, common_name, taxon_id)
         self.ncbi_common_name = 'Real Common Name'
         self.mocked_query = MagicMock()
         self.mocked_query.generate_new_timestamp.return_value = 1
@@ -361,27 +361,27 @@ class TestSpreadsheetParsing(unittest.TestCase):
     data_dir = os.path.dirname(os.path.abspath(__file__))
 
     def test_empty_row_ignored(self):
-        loader = ss_parse.SpreadsheetLoader(os.path.join(self.data_dir, 'test_spreadsheet_loading.xlsx'))
+        loader = m_query.SpreadsheetLoader(os.path.join(self.data_dir, 'test_spreadsheet_loading.xlsx'))
 
         sample_id = 'sample1'
         common_name = 'common_name1'
         taxon_id = 'tax_id1'
-        fake_manifest_1 = ss_parse.ManifestEntry(sample_id, common_name, taxon_id)
+        fake_manifest_1 = m_query.ManifestEntry(sample_id, common_name, taxon_id)
 
         sample_id = 'sample2 null name'
         common_name = '__null__'
         taxon_id = 'tax_id2'
-        fake_manifest_2 = ss_parse.ManifestEntry(sample_id, common_name, taxon_id)
+        fake_manifest_2 = m_query.ManifestEntry(sample_id, common_name, taxon_id)
 
         sample_id = 'sample3 null id'
         common_name = 'common_name3'
         taxon_id = '__null__'
-        fake_manifest_3 = ss_parse.ManifestEntry(sample_id, common_name, taxon_id)
+        fake_manifest_3 = m_query.ManifestEntry(sample_id, common_name, taxon_id)
 
         sample_id = 'sample4 after space'
         common_name = 'common_name4'
         taxon_id = 'tax_id4'
-        fake_manifest_4 = ss_parse.ManifestEntry(sample_id, common_name, taxon_id)
+        fake_manifest_4 = m_query.ManifestEntry(sample_id, common_name, taxon_id)
 
         expected = [fake_manifest_1, fake_manifest_2, fake_manifest_3, fake_manifest_4]
         actual = loader.load()

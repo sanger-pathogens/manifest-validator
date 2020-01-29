@@ -1,4 +1,4 @@
-from validation_components.spreadsheet_parsing import SpreadsheetLoader, ManifestEntry, NcbiQuery
+from validation_components.manifest_querying import SpreadsheetLoader, ManifestEntry, NcbiQuery
 import argparse
 
 def validation_runner(arguments: argparse.Namespace):
