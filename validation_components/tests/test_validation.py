@@ -1,4 +1,6 @@
 import unittest
+import os
+
 from unittest.mock import patch, MagicMock
 from validation_components import spreadsheet_parsing as ss_parse, validation as vl
 from _datetime import datetime
@@ -355,10 +357,39 @@ class TestValidationRunner(unittest.TestCase):
             self.__dict__.update(kwargs)
 
 
-class TestSpreadsheetParsing:
+class TestSpreadsheetParsing(unittest.TestCase):
+    data_dir = os.path.dirname(os.path.abspath(__file__))
 
     def test_empty_row_ignored(self):
-        pass
+        loader = ss_parse.SpreadsheetLoader(os.path.join(self.data_dir, 'test_spreadsheet_loading.xlsx'))
+
+        sample_id = 'sample1'
+        common_name = 'common_name1'
+        taxon_id = 'tax_id1'
+        fake_manifest_1 = ss_parse.ManifestEntry(sample_id, common_name, taxon_id)
+
+        sample_id = 'sample2 null name'
+        common_name = '__null__'
+        taxon_id = 'tax_id2'
+        fake_manifest_2 = ss_parse.ManifestEntry(sample_id, common_name, taxon_id)
+
+        sample_id = 'sample3 null id'
+        common_name = 'common_name3'
+        taxon_id = '__null__'
+        fake_manifest_3 = ss_parse.ManifestEntry(sample_id, common_name, taxon_id)
+
+        sample_id = 'sample4 after space'
+        common_name = 'common_name4'
+        taxon_id = 'tax_id4'
+        fake_manifest_4 = ss_parse.ManifestEntry(sample_id, common_name, taxon_id)
+
+        expected = [fake_manifest_1, fake_manifest_2, fake_manifest_3, fake_manifest_4]
+        actual = loader.load()
+        for position, return_value in enumerate(actual):
+            self.assertEqual(return_value.sample_id, expected[position].sample_id)
+            self.assertEqual(return_value.common_name, expected[position].common_name)
+            self.assertEqual(return_value.taxon_id, expected[position].taxon_id)
+            self.assertEqual(return_value.query_id, expected[position].query_id)
 
 
 if __name__ == '__main__':
