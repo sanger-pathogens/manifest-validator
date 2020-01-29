@@ -39,32 +39,32 @@ class TestNcbiQuerying(unittest.TestCase):
         returned_url = self.ncbi_queries.build_url(self.fake_manifest, esearch)
         self.assertEqual(returned_url, expected_url)
 
-    @patch('validation_components.spreadsheet_parsing.NcbiQuery.build_url')
-    @patch('validation_components.spreadsheet_parsing.NcbiQuery.ncbi_search')
+    @patch('validation_components.manifest_querying.NcbiQuery.build_url')
+    @patch('validation_components.manifest_querying.NcbiQuery.ncbi_search')
     def test_query_ncbi_id_matches(self, mocked_search, mocked_url):
         expected_return_value = '7955'
         mocked_search.return_value = {'esearchresult': {'idlist': ['7955']}}
         returned_taxon_id = self.ncbi_queries.query_ncbi_for_taxon_id(self.fake_manifest)
         self.assertEqual(returned_taxon_id, expected_return_value)
 
-    @patch('validation_components.spreadsheet_parsing.NcbiQuery.build_url')
-    @patch('validation_components.spreadsheet_parsing.NcbiQuery.ncbi_search')
+    @patch('validation_components.manifest_querying.NcbiQuery.build_url')
+    @patch('validation_components.manifest_querying.NcbiQuery.ncbi_search')
     def test_query_ncbi_name_not_found(self, mocked_search, mocked_url):
         expected_common_name = 'Danio rerio'
         mocked_search.return_value = {'result': {'7955': {'scientificname': 'Danio rerio'}}}
         returned_common_name = self.ncbi_queries.query_ncbi_for_common_name(self.fake_manifest)
         self.assertEqual(returned_common_name, expected_common_name)
 
-    @patch('validation_components.spreadsheet_parsing.NcbiQuery.build_url')
-    @patch('validation_components.spreadsheet_parsing.NcbiQuery.ncbi_search')
+    @patch('validation_components.manifest_querying.NcbiQuery.build_url')
+    @patch('validation_components.manifest_querying.NcbiQuery.ncbi_search')
     def test_query_ncbi_name_not_found(self, mocked_search, mocked_url):
         expected_common_name = '__null__'
         mocked_search.return_value = {'result': {'12': {'scientificname': ''}}}
         returned_common_name = self.ncbi_queries.query_ncbi_for_common_name(self.fake_manifest)
         self.assertEqual(returned_common_name, expected_common_name)
 
-    @patch('validation_components.spreadsheet_parsing.NcbiQuery.build_url')
-    @patch('validation_components.spreadsheet_parsing.NcbiQuery.ncbi_search')
+    @patch('validation_components.manifest_querying.NcbiQuery.build_url')
+    @patch('validation_components.manifest_querying.NcbiQuery.ncbi_search')
     def test_query_ncbi_name_found(self, mocked_search, mocked_url):
         self.fake_manifest.taxon_id = '7955'
         expected_common_name = '__null__'
@@ -73,7 +73,7 @@ class TestNcbiQuerying(unittest.TestCase):
         self.assertEqual(returned_common_name, expected_common_name)
 
     @patch('time.sleep')
-    @patch('validation_components.spreadsheet_parsing.NcbiQuery.get_now',
+    @patch('validation_components.manifest_querying.NcbiQuery.get_now',
            return_value=datetime(2019, 12, 20, 14, 0, 59, 360000))
     def test_get_time_enough_time_passed(self, mock_datetime, mock_waiting):
         previous_timestamp = self.MockedNcbiQuery()
@@ -82,7 +82,7 @@ class TestNcbiQuerying(unittest.TestCase):
         mock_waiting.assert_not_called()
 
     @patch('time.sleep')
-    @patch('validation_components.spreadsheet_parsing.NcbiQuery.get_now',
+    @patch('validation_components.manifest_querying.NcbiQuery.get_now',
            return_value=datetime(2019, 12, 20, 14, 0, 59, 360000))
     def test_get_time_not_enough_time_passed(self, mock_datetime, mock_waiting):
         previous_timestamp = self.MockedNcbiQuery()
@@ -91,7 +91,7 @@ class TestNcbiQuerying(unittest.TestCase):
         mock_waiting.assert_called_once()
 
     @patch('time.sleep')
-    @patch('validation_components.spreadsheet_parsing.NcbiQuery.get_now',
+    @patch('validation_components.manifest_querying.NcbiQuery.get_now',
            return_value=datetime(2019, 12, 20, 14, 0, 59, 360000))
     def test_get_time_not_yet_established(self, mock_datetime, mock_waiting):
         previous_timestamp = self.MockedNcbiQuery()
@@ -180,8 +180,8 @@ class TestValidationRunner(unittest.TestCase):
 
     @patch('builtins.print')
     @patch('validation_components.validation.verify_entries')
-    @patch('validation_components.spreadsheet_parsing.SpreadsheetLoader.__init__')
-    @patch('validation_components.spreadsheet_parsing.SpreadsheetLoader.load')
+    @patch('validation_components.manifest_querying.SpreadsheetLoader.__init__')
+    @patch('validation_components.manifest_querying.SpreadsheetLoader.load')
     def test_successful_validation(self, mocked_load, patched_spreadsheet, mocked_inner, mocked_print):
         argparse_with_spreadsheet = self.Namespace(spreadsheet='')
         EMPTY_LIST = []
@@ -194,8 +194,8 @@ class TestValidationRunner(unittest.TestCase):
 
     @patch('builtins.print')
     @patch('validation_components.validation.verify_entries')
-    @patch('validation_components.spreadsheet_parsing.SpreadsheetLoader.__init__')
-    @patch('validation_components.spreadsheet_parsing.SpreadsheetLoader.load')
+    @patch('validation_components.manifest_querying.SpreadsheetLoader.__init__')
+    @patch('validation_components.manifest_querying.SpreadsheetLoader.load')
     def test_unsuccessful_validation(self, mocked_load, patched_spreadsheet, mocked_inner, mocked_print):
         argparse_with_spreadsheet = self.Namespace(spreadsheet='')
         NON_EMPTY_LIST = ['err', 'err2']
@@ -206,7 +206,7 @@ class TestValidationRunner(unittest.TestCase):
         mocked_load.assert_called_once()
         mocked_print.assert_called_with(EXPECTED)
 
-    @patch('validation_components.spreadsheet_parsing.NcbiQuery.__init__')
+    @patch('validation_components.manifest_querying.NcbiQuery.__init__')
     def test_verify_entries_present_in_dictionary(self, mocked_query):
         mocked_query.return_value = None
         self.fake_manifest.sample_id = 'abc123'
@@ -221,7 +221,7 @@ class TestValidationRunner(unittest.TestCase):
     @patch('validation_components.validation.define_error')
     @patch('validation_components.validation.resolve_common_name')
     @patch('validation_components.validation.resolve_taxon_id')
-    @patch('validation_components.spreadsheet_parsing.NcbiQuery.__init__')
+    @patch('validation_components.manifest_querying.NcbiQuery.__init__')
     def test_verify_entries_matching_gets_one_search(self, mocked_query, mocked_taxon_return, mocked_common_name_return, mocked_error):
         mocked_query.return_value = None
         mocked_common_name_return.return_value = '12345'
@@ -238,7 +238,7 @@ class TestValidationRunner(unittest.TestCase):
         mocked_error.assert_not_called()
 
     @patch('validation_components.validation.resolve_common_name')
-    @patch('validation_components.spreadsheet_parsing.NcbiQuery.__init__')
+    @patch('validation_components.manifest_querying.NcbiQuery.__init__')
     def test_verify_entries_matching_gets_one_search_for_repeated_query_ids(self, mocked_query, mocked_common_name_return):
         mocked_query.return_value = None
         mocked_common_name_return.return_value = '12345'
@@ -258,7 +258,7 @@ class TestValidationRunner(unittest.TestCase):
     @patch('validation_components.validation.resolve_error')
     @patch('validation_components.validation.resolve_common_name')
     @patch('validation_components.validation.resolve_taxon_id')
-    @patch('validation_components.spreadsheet_parsing.NcbiQuery.__init__')
+    @patch('validation_components.manifest_querying.NcbiQuery.__init__')
     def test_verify_entries_non_matching_get_searched_twice(self, mocked_query, mocked_taxon_return, mocked_common_name_return, mocked_resolve, mocked_definition):
         mocked_query.return_value = None
         mocked_common_name_return.return_value = '67890'
@@ -309,9 +309,9 @@ class TestValidationRunner(unittest.TestCase):
         EXPECTED_RESULT = 'Not null'
         self.assertEqual(returned_value, EXPECTED_RESULT)
 
-    @patch('validation_components.spreadsheet_parsing.ManifestEntry.taxon_id_definition')
-    @patch('validation_components.spreadsheet_parsing.ManifestEntry.common_name_definition')
-    @patch('validation_components.spreadsheet_parsing.ManifestEntry.report_error')
+    @patch('validation_components.manifest_querying.ManifestEntry.taxon_id_definition')
+    @patch('validation_components.manifest_querying.ManifestEntry.common_name_definition')
+    @patch('validation_components.manifest_querying.ManifestEntry.report_error')
     def test_define_error(self, mocked_error_report, mocked_name_definition, mocked_id_definition):
         error_code = 1
         ncbi_taxon_id = 'taxId'
