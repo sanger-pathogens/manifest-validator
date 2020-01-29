@@ -16,54 +16,54 @@ def validation_runner(arguments: argparse.Namespace):
 
 def verify_entries(all_entries):
     error_list = []
-    registered_values = {'__null____null__': [1, None, None]}
-    timestamp = None
+    registered_values = {'__null____null__': ": No taxon ID or common name specified. If unkown please use 32644 - 'unidentified'."}
+    connecter = NcbiQuery()
     for manifest_entry in all_entries:
         if manifest_entry.query_id in registered_values.keys():
-            error_code = registered_values[manifest_entry.query_id][0]
-            common_name_statement = registered_values[manifest_entry.query_id][1]
-            taxon_id_statement = registered_values[manifest_entry.query_id][2]
-            if error_code != 0:
-                error_list.append(manifest_entry.report_error(error_code, common_name_statement, taxon_id_statement))
-
+            error_term = registered_values[manifest_entry.query_id]
+            if error_term is not None:
+                error_list.append((manifest_entry.sample_id + error_term))
         else:
-            connecter = NcbiQuery()
-
-            common_name_statement, ncbi_taxon_id, timestamp = resolve_common_name(connecter, manifest_entry,
-                                                                                  timestamp)
+            ncbi_taxon_id = resolve_common_name(connecter, manifest_entry)
 
             if manifest_entry.taxon_id == ncbi_taxon_id:
-                error_code = 0
-                common_name_statement = None
-                taxon_id_statement = None
+                error_term = None
             else:
-                error_code, taxon_id_statement, timestamp = resolve_taxon_id(connecter, manifest_entry, timestamp, ncbi_taxon_id)
-
-            if error_code != 0:
-                error_list.append(manifest_entry.report_error(error_code, common_name_statement, taxon_id_statement))
-            registered_values[manifest_entry.query_id] = (error_code, common_name_statement, taxon_id_statement)
+                ncbi_common_name = resolve_taxon_id(connecter, manifest_entry)
+                error_code = resolve_error(ncbi_common_name, ncbi_taxon_id)
+                error_term = define_error(error_code, manifest_entry, ncbi_taxon_id, ncbi_common_name)
+                error_list.append((manifest_entry.sample_id+error_term))
+            registered_values[manifest_entry.query_id] = error_term
     return error_list
 
 
-def resolve_taxon_id(connecter, manifest_entry, timestamp, ncbi_taxon_id):
+def define_error(error_code, manifest_entry, ncbi_taxon_id, ncbi_common_name):
+    common_name_statement = manifest_entry.common_name_definition(ncbi_taxon_id)
+    taxon_id_statement = manifest_entry.taxon_id_definition(ncbi_common_name)
+
+    error_term = manifest_entry.report_error(error_code, common_name_statement, taxon_id_statement)
+    return error_term
+
+
+def resolve_error(ncbi_common_name, ncbi_taxon_id):
+    if ncbi_common_name != '__null__' and ncbi_taxon_id != '__null__':
+        error_code = 1
+    else:
+        error_code = 2
+    return error_code
+
+
+def resolve_taxon_id(connecter, manifest_entry):
     if manifest_entry.taxon_id != '__null__':
-        timestamp = connecter.generate_new_timestamp(timestamp)
         ncbi_common_name = connecter.query_ncbi_for_common_name(manifest_entry)
     else:
         ncbi_common_name = "__null__"
-    if ncbi_common_name != '__null__' and ncbi_taxon_id != '__null__':
-        error_code = 2
-    else:
-        error_code = 3
-    taxon_id_statement = manifest_entry.taxon_id_definition(ncbi_common_name)
-    return error_code, taxon_id_statement, timestamp
+    return ncbi_common_name
 
 
-def resolve_common_name(connecter, manifest_entry, timestamp):
+def resolve_common_name(connecter, manifest_entry):
     if manifest_entry.common_name != '__null__':
-        timestamp = connecter.generate_new_timestamp(timestamp)
         ncbi_taxon_id = connecter.query_ncbi_for_taxon_id(manifest_entry)
     else:
         ncbi_taxon_id = '__null__'
-    common_name_statement = manifest_entry.common_name_definition(ncbi_taxon_id)
-    return common_name_statement, ncbi_taxon_id, timestamp
+    return ncbi_taxon_id

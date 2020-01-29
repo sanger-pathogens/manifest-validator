@@ -11,22 +11,19 @@ class ManifestEntry:
         self.taxon_id = taxon_id
         self.query_id = common_name + str(taxon_id)
 
-    def report_error(self, error_code, common_name_statement=None, taxon_id_statement=None):
+    def report_error(self, error_code, common_name_statement, taxon_id_statement):
         if error_code == 1:
-            error = (f"{self.sample_id}: No taxon ID or common name specified. "
-                     f"If unkown please use 32644 - 'unidentified'.")
-        elif error_code == 2:
-            error = (f"{self.sample_id}: Taxon ID and common name don't match. " + common_name_statement
+            error = (f": Taxon ID and common name don't match. " + common_name_statement
                      + taxon_id_statement)
         else:
-            error = (f"{self.sample_id}: " + common_name_statement + taxon_id_statement)
+            error = (f": " + common_name_statement + taxon_id_statement)
         return error
 
     def common_name_definition(self, ncbi_result):
         if self.common_name == '__null__':
             statement = 'No common name specified. '
         elif ncbi_result == '__null__':
-            statement = f"The common name '{self.common_name}' does not exist in the NCBI database. "
+            statement = f"The given common name '{self.common_name}' does not exist in the NCBI database. "
         else:
             statement = f"The taxon ID for given name '{self.common_name}' is {ncbi_result}. "
         return statement
@@ -35,40 +32,43 @@ class ManifestEntry:
         if self.taxon_id == '__null__':
             statement = 'No taxon ID specified.'
         elif ncbi_result == '__null__':
-            statement = 'The taxon ID is not officially recognised by NCBI.'
+            statement = f'The given taxon ID {self.taxon_id} does not exist in the NCBI database.'
         else:
             statement = f"The official name for the given taxon ID {self.taxon_id} is '{ncbi_result}'."
         return statement
 
 class NcbiQuery:
 
+    def __init__(self):
+        self.timestamp = None
+
     @staticmethod
     def get_now():
         return datetime.now()
 
-    @staticmethod
-    def generate_new_timestamp(previous_timestamp):
-        if previous_timestamp != None:
-            time_since_last_query = NcbiQuery.get_now() - previous_timestamp
+    def generate_new_timestamp(self):
+        if self.timestamp != None:
+            time_since_last_query = NcbiQuery.get_now() - self.timestamp
 
             required_microsecond_delay = 335000
             if time_since_last_query.days == 0 and time_since_last_query.seconds == 0 and time_since_last_query.microseconds < required_microsecond_delay:
                 time.sleep((required_microsecond_delay - time_since_last_query.microseconds) / 1000000)
 
-        new_timestamp = NcbiQuery.get_now()
-        return new_timestamp
+        self.timestamp = NcbiQuery.get_now()
 
 
-    def query_ncbi_for_taxon_id(self, manifest_entry: object):
+    def query_ncbi_for_taxon_id(self, manifest_entry: ManifestEntry):
+        self.generate_new_timestamp()
         url = self.build_url(manifest_entry, esearch=True)
         tax_id_json = self.ncbi_search(url)
         if 'esearchresult' in tax_id_json and 'idlist' in tax_id_json['esearchresult'] and len(
                 tax_id_json['esearchresult']['idlist']) == 1:
             return str(tax_id_json['esearchresult']['idlist'][0])
         else:
-            return str('__null__')
+            return '__null__'
 
-    def query_ncbi_for_common_name(self, manifest_entry: object):
+    def query_ncbi_for_common_name(self, manifest_entry: ManifestEntry):
+        self.generate_new_timestamp()
         url = self.build_url(manifest_entry, esearch=False)
         common_name_json = self.ncbi_search(url)
         if 'result' in common_name_json and manifest_entry.taxon_id in common_name_json['result'] and 'scientificname' in \
@@ -79,8 +79,8 @@ class NcbiQuery:
         return ncbi_common_name
 
     def build_url(self, manifest_entry, esearch: bool):
-        mid_url = '.fcgi?db=taxonomy&'
         base_url = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/'
+        mid_url = '.fcgi?db=taxonomy&'
         end_url = '&retmode=json'
         if esearch:
             url = base_url + 'esearch' + mid_url + 'field=All%20Names&term=' + manifest_entry.common_name + end_url
@@ -128,7 +128,7 @@ class SpreadsheetLoader:
             common_name = self.__extract_cell_value(row, common_name_column)
             taxon_id = self.__extract_cell_value(row, taxon_id_column)
             sample_id = self.__extract_cell_value(row, sample_id_column)
-            if sample_id is not '__null__':
+            if sample_id != '__null__':
                 entry = ManifestEntry(sample_id, common_name, taxon_id)
                 entries.append(entry)
         return entries

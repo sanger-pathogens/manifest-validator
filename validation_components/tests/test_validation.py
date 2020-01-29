@@ -13,6 +13,10 @@ class TestNcbiQuerying(unittest.TestCase):
         self.fake_manifest = ss_parse.ManifestEntry(sample_id, common_name, taxon_id)
         self.ncbi_queries = ss_parse.NcbiQuery()
 
+    class MockedNcbiQuery:
+        def __init__(self):
+            self.timestamp = None
+
     @patch('requests.Session')
     def test_ncbi_search(self, mocked_session):
         url = 'https://fake.url.gov/page/id'
@@ -70,7 +74,8 @@ class TestNcbiQuerying(unittest.TestCase):
     @patch('validation_components.spreadsheet_parsing.NcbiQuery.get_now',
            return_value=datetime(2019, 12, 20, 14, 0, 59, 360000))
     def test_get_time_enough_time_passed(self, mock_datetime, mock_waiting):
-        previous_timestamp = datetime(2019, 12, 20, 14, 0, 59, 0)
+        previous_timestamp = self.MockedNcbiQuery()
+        previous_timestamp.timestamp = datetime(2019, 12, 20, 14, 0, 59, 0)
         ss_parse.NcbiQuery.generate_new_timestamp(previous_timestamp)
         mock_waiting.assert_not_called()
 
@@ -78,7 +83,8 @@ class TestNcbiQuerying(unittest.TestCase):
     @patch('validation_components.spreadsheet_parsing.NcbiQuery.get_now',
            return_value=datetime(2019, 12, 20, 14, 0, 59, 360000))
     def test_get_time_not_enough_time_passed(self, mock_datetime, mock_waiting):
-        previous_timestamp = datetime(2019, 12, 20, 14, 0, 59, 360000)
+        previous_timestamp = self.MockedNcbiQuery()
+        previous_timestamp.timestamp = datetime(2019, 12, 20, 14, 0, 59, 360000)
         ss_parse.NcbiQuery.generate_new_timestamp(previous_timestamp)
         mock_waiting.assert_called_once()
 
@@ -86,7 +92,7 @@ class TestNcbiQuerying(unittest.TestCase):
     @patch('validation_components.spreadsheet_parsing.NcbiQuery.get_now',
            return_value=datetime(2019, 12, 20, 14, 0, 59, 360000))
     def test_get_time_not_yet_established(self, mock_datetime, mock_waiting):
-        previous_timestamp = None
+        previous_timestamp = self.MockedNcbiQuery()
         ss_parse.NcbiQuery.generate_new_timestamp(previous_timestamp)
         mock_waiting.assert_not_called()
 
@@ -100,28 +106,19 @@ class TestManifestEntry(unittest.TestCase):
         self.fake_manifest = ss_parse.ManifestEntry(sample_id, common_name, taxon_id)
         self.ncbi_common_name = 'Real Common Name'
 
-    def test_report_error_code_1_no_data(self):
+    def test_report_error_code_1_unmatched_returns(self):
         error_code = 1
-        common_name_statement = None
-        taxon_id_statement = None
-        expected_return = "study_sample123: No taxon ID or common name specified." \
-                          " If unkown please use 32644 - 'unidentified'."
+        common_name_statement = "Common Name Statement First. "
+        taxon_id_statement = "Taxon ID Statement Second."
+        expected_return = ": Taxon ID and common name don't match. Common Name Statement First. Taxon ID Statement Second."
         actual_return = self.fake_manifest.report_error(error_code, common_name_statement, taxon_id_statement)
         self.assertEqual(expected_return, actual_return)
 
-    def test_report_error_code_2_unmatched_returns(self):
+    def test_report_error_code_3_random_errors(self):
         error_code = 2
         common_name_statement = "Common Name Statement First. "
         taxon_id_statement = "Taxon ID Statement Second."
-        expected_return = "study_sample123: Taxon ID and common name don't match. Common Name Statement First. Taxon ID Statement Second."
-        actual_return = self.fake_manifest.report_error(error_code, common_name_statement, taxon_id_statement)
-        self.assertEqual(expected_return, actual_return)
-
-    def test_report_error_code_3_(self):
-        error_code = 3
-        common_name_statement = "Common Name Statement First. "
-        taxon_id_statement = "Taxon ID Statement Second."
-        expected_return = 'study_sample123: Common Name Statement First. Taxon ID Statement Second.'
+        expected_return = ': Common Name Statement First. Taxon ID Statement Second.'
         actual_return = self.fake_manifest.report_error(error_code, common_name_statement, taxon_id_statement)
         self.assertEqual(expected_return, actual_return)
 
@@ -135,7 +132,7 @@ class TestManifestEntry(unittest.TestCase):
     def test_common_name_ncbi_tax_id_null_statement(self):
         ncbi_data = "__null__"
         self.fake_manifest.common_name = 'value'
-        expected_return = "The common name 'value' does not exist in the NCBI database. "
+        expected_return = "The given common name 'value' does not exist in the NCBI database. "
         actual_return = self.fake_manifest.common_name_definition(ncbi_data)
         self.assertEqual(expected_return, actual_return)
 
@@ -156,7 +153,7 @@ class TestManifestEntry(unittest.TestCase):
     def test_taxon_id_ncbi_common_name_null_statement(self):
         ncbi_data = "__null__"
         self.fake_manifest.taxon_id = 'num123'
-        expected_return = "The taxon ID is not officially recognised by NCBI."
+        expected_return = "The given taxon ID num123 does not exist in the NCBI database."
         actual_return = self.fake_manifest.taxon_id_definition(ncbi_data)
         self.assertEqual(expected_return, actual_return)
 
@@ -169,10 +166,6 @@ class TestManifestEntry(unittest.TestCase):
 
 
 class TestValidationRunner(unittest.TestCase):
-
-    # @patch()
-    # Argparse_with_spreadsheet = self.Namespace(spreadsheet='directory/spreadsheet.xlsx')
-    # vl.validation_runner(Argparse_with_spreadsheet)
 
     def setUp(self):
         sample_id = ''
@@ -188,12 +181,12 @@ class TestValidationRunner(unittest.TestCase):
     @patch('validation_components.spreadsheet_parsing.SpreadsheetLoader.__init__')
     @patch('validation_components.spreadsheet_parsing.SpreadsheetLoader.load')
     def test_successful_validation(self, mocked_load, patched_spreadsheet, mocked_inner, mocked_print):
-        Argparse_with_spreadsheet = self.Namespace(spreadsheet='')
+        argparse_with_spreadsheet = self.Namespace(spreadsheet='')
         EMPTY_LIST = []
         EXPECTED = 'Manifest successfully validated, no errors found!'
         mocked_inner.return_value = EMPTY_LIST
         patched_spreadsheet.return_value = None
-        vl.validation_runner(Argparse_with_spreadsheet)
+        vl.validation_runner(argparse_with_spreadsheet)
         mocked_load.assert_called_once()
         mocked_print.assert_called_with(EXPECTED)
 
@@ -202,20 +195,17 @@ class TestValidationRunner(unittest.TestCase):
     @patch('validation_components.spreadsheet_parsing.SpreadsheetLoader.__init__')
     @patch('validation_components.spreadsheet_parsing.SpreadsheetLoader.load')
     def test_unsuccessful_validation(self, mocked_load, patched_spreadsheet, mocked_inner, mocked_print):
-        Argparse_with_spreadsheet = self.Namespace(spreadsheet='')
-        NON_EMPTY_LIST = ['err','err2']
+        argparse_with_spreadsheet = self.Namespace(spreadsheet='')
+        NON_EMPTY_LIST = ['err', 'err2']
         EXPECTED = 'Errors found within manifest:\n\terr\n\terr2\nPlease correct mistakes and validate again.'
         mocked_inner.return_value = NON_EMPTY_LIST
         patched_spreadsheet.return_value = None
-        vl.validation_runner(Argparse_with_spreadsheet)
+        vl.validation_runner(argparse_with_spreadsheet)
         mocked_load.assert_called_once()
         mocked_print.assert_called_with(EXPECTED)
 
-    @patch('validation_components.spreadsheet_parsing.ManifestEntry.report_error')
-    @patch('validation_components.validation.resolve_common_name')
-    @patch('validation_components.validation.resolve_taxon_id')
     @patch('validation_components.spreadsheet_parsing.NcbiQuery.__init__')
-    def test_verify_entries_present_in_dictionary(self, mocked_query, mocked_taxon_return, mocked_common_name_return, mocked_error):
+    def test_verify_entries_present_in_dictionary(self, mocked_query):
         mocked_query.return_value = None
         self.fake_manifest.sample_id = 'abc123'
         self.fake_manifest.common_name = '__null__'
@@ -223,105 +213,141 @@ class TestValidationRunner(unittest.TestCase):
         self.fake_manifest.query_id = '__null____null__'
         ENTRY_LIST = [self.fake_manifest]
         returned_value = vl.verify_entries(ENTRY_LIST)
-        mocked_error.assert_called_with(1, None, None)
+        expected_return = ["abc123: No taxon ID or common name specified. If unkown please use 32644 - 'unidentified'."]
+        self.assertEqual(returned_value, expected_return)
 
-    @patch('validation_components.spreadsheet_parsing.ManifestEntry.report_error')
+    @patch('validation_components.validation.define_error')
     @patch('validation_components.validation.resolve_common_name')
     @patch('validation_components.validation.resolve_taxon_id')
     @patch('validation_components.spreadsheet_parsing.NcbiQuery.__init__')
     def test_verify_entries_matching_gets_one_search(self, mocked_query, mocked_taxon_return, mocked_common_name_return, mocked_error):
         mocked_query.return_value = None
-        mocked_common_name_return.return_value = ('quote','12345', 135)
+        mocked_common_name_return.return_value = '12345'
         self.fake_manifest.sample_id = 'abc123'
         self.fake_manifest.common_name = 'species'
         self.fake_manifest.taxon_id = '12345'
         self.fake_manifest.query_id = 'species12345'
         ENTRY_LIST = [self.fake_manifest]
         returned_value = vl.verify_entries(ENTRY_LIST)
+        expected_return = []
+        self.assertEqual(returned_value, expected_return)
         mocked_common_name_return.assert_called_once()
         mocked_taxon_return.assert_not_called()
         mocked_error.assert_not_called()
 
-    @patch('validation_components.spreadsheet_parsing.ManifestEntry.report_error')
+    @patch('validation_components.validation.resolve_common_name')
+    @patch('validation_components.spreadsheet_parsing.NcbiQuery.__init__')
+    def test_verify_entries_matching_gets_one_search_for_repeated_query_ids(self, mocked_query, mocked_common_name_return):
+        mocked_query.return_value = None
+        mocked_common_name_return.return_value = '12345'
+        self.fake_manifest.sample_id = 'abc123'
+        self.fake_manifest.common_name = 'species'
+        self.fake_manifest.taxon_id = '12345'
+        self.fake_manifest.query_id = 'species12345'
+        self.fake_manifest2 = self.fake_manifest
+        self.fake_manifest2.sample_id = 'xyz456'
+        ENTRY_LIST = [self.fake_manifest]
+        returned_value = vl.verify_entries(ENTRY_LIST)
+        expected_return = []
+        self.assertEqual(returned_value, expected_return)
+        mocked_common_name_return.assert_called_once()
+
+    @patch('validation_components.validation.define_error')
+    @patch('validation_components.validation.resolve_error')
     @patch('validation_components.validation.resolve_common_name')
     @patch('validation_components.validation.resolve_taxon_id')
     @patch('validation_components.spreadsheet_parsing.NcbiQuery.__init__')
-    def test_verify_entries_non_matching_get_searched_twice(self, mocked_query, mocked_taxon_return, mocked_common_name_return, mocked_error):
+    def test_verify_entries_non_matching_get_searched_twice(self, mocked_query, mocked_taxon_return, mocked_common_name_return, mocked_resolve, mocked_definition):
         mocked_query.return_value = None
-        mocked_common_name_return.return_value = ('quote','67890', 135)
-        mocked_taxon_return.return_value = (1, 'quote2', 135)
+        mocked_common_name_return.return_value = '67890'
+        mocked_taxon_return.return_value = 'species2'
+        mocked_definition.return_value = 'term1'
         self.fake_manifest.sample_id = 'abc123'
         self.fake_manifest.common_name = 'species'
         self.fake_manifest.taxon_id = '12345'
         self.fake_manifest.query_id = 'species12345'
         ENTRY_LIST = [self.fake_manifest]
         returned_value = vl.verify_entries(ENTRY_LIST)
+        expected_return = ['abc123term1']
+        self.assertEqual(returned_value, expected_return)
         mocked_common_name_return.assert_called_once()
         mocked_taxon_return.assert_called_once()
-        mocked_error.assert_called_with(1, 'quote', 'quote2')
+        mocked_resolve.assert_called_once()
+        mocked_definition.assert_called_once()
 
-    @patch('validation_components.spreadsheet_parsing.ManifestEntry.common_name_definition')
-    def test_resolve_common_name_present_initial_returns_ncbi_search(self, mocked_definition):
-        mocked_definition.return_value = None
+    def test_resolve_common_name_present_initial_returns_ncbi_search(self):
         self.fake_manifest.common_name = 'species'
         self.fake_manifest.taxon_id = '12345'
         self.mocked_query.query_ncbi_for_taxon_id.return_value = 'NCBI VALUE'
-        returned_value = vl.resolve_common_name(self.mocked_query, self.fake_manifest, None)
-        EXPECTED_RESULT = (None, 'NCBI VALUE', 1)
+        returned_value = vl.resolve_common_name(self.mocked_query, self.fake_manifest)
+        EXPECTED_RESULT = 'NCBI VALUE'
         self.assertEqual(returned_value, EXPECTED_RESULT)
 
-    @patch('validation_components.spreadsheet_parsing.ManifestEntry.common_name_definition')
-    def test_resolve_common_name_no_initial_returns_null(self, mocked_definition):
-        mocked_definition.return_value = None
+    def test_resolve_common_name_no_initial_returns_null(self):
         self.fake_manifest.common_name = '__null__'
         self.fake_manifest.taxon_id = '12345'
         self.mocked_query.query_ncbi_for_taxon_id.return_value = 'Not null'
-        returned_value = vl.resolve_common_name(self.mocked_query, self.fake_manifest, None)
-        EXPECTED_RESULT = (None, '__null__', None)
+        returned_value = vl.resolve_common_name(self.mocked_query, self.fake_manifest)
+        EXPECTED_RESULT = '__null__'
         self.assertEqual(returned_value, EXPECTED_RESULT)
 
-    @patch('validation_components.spreadsheet_parsing.ManifestEntry.taxon_id_definition')
-    def test_resolve_taxon_id_no_initial_returns_null_and_error_3(self, mocked_definition):
-        mocked_definition.return_value = None
+    def test_resolve_taxon_id_no_initial_returns_null(self):
         self.fake_manifest.common_name = 'value'
         self.fake_manifest.taxon_id = '__null__'
         self.mocked_query.query_ncbi_for_common_name.return_value = 'Not null'
-        returned_value = vl.resolve_taxon_id(self.mocked_query, self.fake_manifest, None, 'Not_Null')
-        EXPECTED_RESULT = (3, None, None)
-        mocked_definition.assert_called_once_with('__null__')
+        returned_value = vl.resolve_taxon_id(self.mocked_query, self.fake_manifest)
+        EXPECTED_RESULT = '__null__'
+        self.assertEqual(returned_value, EXPECTED_RESULT)
+
+    def test_resolve_taxon_id_returns_ncbi(self):
+        self.fake_manifest.common_name = 'value'
+        self.fake_manifest.taxon_id = 'taxId'
+        self.mocked_query.query_ncbi_for_common_name.return_value = 'Not null'
+        returned_value = vl.resolve_taxon_id(self.mocked_query, self.fake_manifest)
+        EXPECTED_RESULT = 'Not null'
         self.assertEqual(returned_value, EXPECTED_RESULT)
 
     @patch('validation_components.spreadsheet_parsing.ManifestEntry.taxon_id_definition')
-    def test_resolve_taxon_id_null_ncbi_returns_error_3(self, mocked_definition):
-        mocked_definition.return_value = None
-        self.fake_manifest.common_name = 'value'
-        self.fake_manifest.taxon_id = 'not null'
-        self.mocked_query.query_ncbi_for_common_name.return_value = '__null__'
-        returned_value = vl.resolve_taxon_id(self.mocked_query, self.fake_manifest, None, 'Not_Null')
-        EXPECTED_RESULT = (3, None, 1)
-        mocked_definition.assert_called_once_with('__null__')
+    @patch('validation_components.spreadsheet_parsing.ManifestEntry.common_name_definition')
+    @patch('validation_components.spreadsheet_parsing.ManifestEntry.report_error')
+    def test_define_error(self, mocked_error_report, mocked_name_definition, mocked_id_definition):
+        error_code = 1
+        ncbi_taxon_id = 'taxId'
+        ncbi_common_name = 'value'
+        mocked_name_definition.return_value = 'name term'
+        mocked_id_definition.return_value = 'taxon term'
+        mocked_error_report.return_value = 'full term'
+        returned_value = vl.define_error(error_code, self.fake_manifest, ncbi_taxon_id, ncbi_common_name)
+        EXPECTED_RESULT = 'full term'
+        self.assertEqual(returned_value, EXPECTED_RESULT)
+        mocked_name_definition.assert_called_with('taxId')
+        mocked_error_report.assert_called_with(1, 'name term', 'taxon term')
+        mocked_id_definition.assert_called_with('value')
+
+    def test_resolve_error_correct_non_matching(self):
+        ncbi_common_name = 'value'
+        ncbi_taxon_id = 'taxId'
+        returned_value = vl.resolve_error(ncbi_common_name, ncbi_taxon_id)
+        EXPECTED_RESULT = 1
         self.assertEqual(returned_value, EXPECTED_RESULT)
 
-    @patch('validation_components.spreadsheet_parsing.ManifestEntry.taxon_id_definition')
-    def test_resolve_taxon_id_no_ncbi_taxon_id_returns_query_and_error_3(self, mocked_definition):
-        mocked_definition.return_value = None
-        self.fake_manifest.common_name = 'value'
-        self.fake_manifest.taxon_id = 'Not Null'
-        self.mocked_query.query_ncbi_for_common_name.return_value = 'Not Null Query'
-        returned_value = vl.resolve_taxon_id(self.mocked_query, self.fake_manifest, None, '__null__')
-        EXPECTED_RESULT = (3, None, 1)
-        mocked_definition.assert_called_once_with('Not Null Query')
+    def test_resolve_error_null_cases(self):
+        ncbi_common_name = '__null__'
+        ncbi_taxon_id = 'taxId'
+        returned_value = vl.resolve_error(ncbi_common_name, ncbi_taxon_id)
+        EXPECTED_RESULT = 2
         self.assertEqual(returned_value, EXPECTED_RESULT)
 
-    @patch('validation_components.spreadsheet_parsing.ManifestEntry.taxon_id_definition')
-    def test_resolve_taxon_id_no_null_values_returns_query_and_error_2(self, mocked_definition):
-        mocked_definition.return_value = None
-        self.fake_manifest.common_name = 'value'
-        self.fake_manifest.taxon_id = 'Not Null'
-        self.mocked_query.query_ncbi_for_common_name.return_value = 'Not Null Query'
-        returned_value = vl.resolve_taxon_id(self.mocked_query, self.fake_manifest, None, 'Ncbi_taxon_id')
-        EXPECTED_RESULT = (2, None, 1)
-        mocked_definition.assert_called_once_with('Not Null Query')
+        ncbi_common_name = 'value'
+        ncbi_taxon_id = '__null__'
+        returned_value = vl.resolve_error(ncbi_common_name, ncbi_taxon_id)
+        EXPECTED_RESULT = 2
+        self.assertEqual(returned_value, EXPECTED_RESULT)
+
+        ncbi_common_name = '__null__'
+        ncbi_taxon_id = '__null__'
+        returned_value = vl.resolve_error(ncbi_common_name, ncbi_taxon_id)
+        EXPECTED_RESULT = 2
         self.assertEqual(returned_value, EXPECTED_RESULT)
 
     class Namespace:
