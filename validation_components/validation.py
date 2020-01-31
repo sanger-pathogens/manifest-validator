@@ -1,4 +1,4 @@
-from validation_components.spreadsheet_parsing import SpreadsheetLoader
+from validation_components.manifest_querying import SpreadsheetLoader, ManifestEntry, NcbiQuery
 import argparse
 
 def validation_runner(arguments: argparse.Namespace):
@@ -6,25 +6,64 @@ def validation_runner(arguments: argparse.Namespace):
     loader = SpreadsheetLoader(arguments.spreadsheet)
     all_entries = loader.load()
 
+    error_list = verify_entries(all_entries)
+
+    if len(error_list) > 0:
+        print('Errors found within manifest:\n\t' + '\n\t'.join(error_list) + '\nPlease correct mistakes and validate again.')
+    else:
+        print('Manifest successfully validated, no errors found!')
+
+
+def verify_entries(all_entries):
     error_list = []
-    registered_values = {}
+    registered_values = {'__null____null__': ": No taxon ID or common name specified. If unkown please use 32644 - 'unidentified'."}
+    connecter = NcbiQuery()
     for manifest_entry in all_entries:
-        if manifest_entry.common_name == None or manifest_entry.taxon_id == None:
-            error_list.append(report_error(manifest_entry, 1))
-        elif [manifest_entry.common_name, manifest_entry.taxon_id] in registered_values.values():
-            pass
+        if manifest_entry.query_id in registered_values.keys():
+            error_term = registered_values[manifest_entry.query_id]
+            if error_term is not None:
+                error_list.append((manifest_entry.sample_id + error_term))
         else:
-            pass
+            ncbi_taxon_id = resolve_common_name(connecter, manifest_entry)
+
+            if manifest_entry.taxon_id == ncbi_taxon_id:
+                error_term = None
+            else:
+                ncbi_common_name = resolve_taxon_id(connecter, manifest_entry)
+                error_code = resolve_error(ncbi_common_name, ncbi_taxon_id)
+                error_term = define_error(error_code, manifest_entry, ncbi_taxon_id, ncbi_common_name)
+                error_list.append((manifest_entry.sample_id+error_term))
+            registered_values[manifest_entry.query_id] = error_term
+    return error_list
 
 
-def report_error(query, error_code):
-    if error_code == 1:
-        if query.common_name == None:
-            error = f'Error: single common name found at {query.sample_id}'
-        else:
-            error = f'Error: single taxon id found at {query.sample_id}'
-        if error_code == 2:
-            error = f'Error: NCBI cant find {query.common_name} official name for {query.taxon_id} is {query.ncbi_common_name}'
-        if error_code == 3:
-            error = f'Error: {query.common_name} doesnt match {query.taxon_id} the official name for {query.taxon_id} is {query.ncbi_common_name}'
-        return error
+def define_error(error_code, manifest_entry, ncbi_taxon_id, ncbi_common_name):
+    common_name_statement = manifest_entry.common_name_definition(ncbi_taxon_id)
+    taxon_id_statement = manifest_entry.taxon_id_definition(ncbi_common_name)
+
+    error_term = manifest_entry.report_error(error_code, common_name_statement, taxon_id_statement)
+    return error_term
+
+
+def resolve_error(ncbi_common_name, ncbi_taxon_id):
+    if ncbi_common_name != '__null__' and ncbi_taxon_id != '__null__':
+        error_code = 1
+    else:
+        error_code = 2
+    return error_code
+
+
+def resolve_taxon_id(connecter, manifest_entry):
+    if manifest_entry.taxon_id != '__null__':
+        ncbi_common_name = connecter.query_ncbi_for_common_name(manifest_entry)
+    else:
+        ncbi_common_name = "__null__"
+    return ncbi_common_name
+
+
+def resolve_common_name(connecter, manifest_entry):
+    if manifest_entry.common_name != '__null__':
+        ncbi_taxon_id = connecter.query_ncbi_for_taxon_id(manifest_entry)
+    else:
+        ncbi_taxon_id = '__null__'
+    return ncbi_taxon_id

@@ -19,7 +19,7 @@ setup(
     packages = ['validation_components'],
     author='Charles Nunn',
     author_email='path-help@sanger.ac.uk',
-    url='https://github.com/trstickland/MYPROJECT',
+    url='https://github.com/sanger-pathogens/manifest-validator',
     scripts=glob.glob('scripts/*'),
     test_suite='nose.collector',
     tests_require=['nose >= 1.3'],

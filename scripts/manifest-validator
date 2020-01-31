@@ -8,3 +8,5 @@ parser.add_argument('spreadsheet', type=str,
 					help='Manifest spreadsheet to be checked for matching taxon and common name')
 args = parser.parse_args()
 validation_runner(args)
+
+	# TODO: Add parser and main function testing
