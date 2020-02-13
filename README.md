@@ -25,7 +25,7 @@ Manifest-validator has the following dependencies:
 Python 3.6.9
 ```
 
-There are a number of ways to install manifest-validator and details are provided below. If you encounter an issue when installing manifest-validator please contact your local system administrator. If you encounter a bug please email us at path-help@sanger.ac.uk.
+The ways to install manifest-validator and details are provided below. If you encounter an issue when installing manifest-validator please email us at path-help@sanger.ac.uk.
 
 ### Docker
 WIP
@@ -70,4 +70,4 @@ After this, follow the errors in the terminal output to clean the manifest befor
 
 
 ## License
-Manifest-validator is free software, licensed under [<license>](https://github.com/sanger-pathogens/vr-codebase/blob/master/LICENSE).
+Manifest-validator is free software, licensed under [GPLv3](https://github.com/sanger-pathogens/vr-codebase/blob/master/LICENSE).
