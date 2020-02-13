@@ -5,7 +5,7 @@ A python3 library to validate the taxonomy id and common names in a manifest spr
 [![codecov](https://codecov.io/gh/sanger-pathogens/manifest-validator/branch/master/graph/badge.svg)](https://codecov.io/gh/sanger-pathogens/manifest-validator)
 [![License: GPL v3](https://img.shields.io/badge/License-GPL%20v3-brightgreen.svg)](https://github.com/sanger-pathogens/seroba/blob/master/LICENSE)   
 
-## Contents (edit as fit)
+## Contents
   * [Introduction](#introduction)
   * [Installation](#installation)
     * [Required dependencies](#required-dependencies)
