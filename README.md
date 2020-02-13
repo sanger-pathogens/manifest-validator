@@ -9,48 +9,50 @@ A python3 library to validate the taxonomy id and common names in a manifest spr
   * [Introduction](#introduction)
   * [Installation](#installation)
     * [Required dependencies](#required-dependencies)
-    * [Optional dependencies](#optional-dependencies)
-    * [Linux specific instructions (Debian, Ubuntu, RedHat etc\.)](#linux-specific-instructions-debian-ubuntu-redhat-etc)
-    * [Mac OS](#mac-os)
-    * [Bioconda](#bioconda)
-    * [Homebrew/Linuxbrew](#homebrewlinuxbrew)
     * [Docker](#docker)
-    * [Virtual Machine](#virtual-machine)
-    * [Galaxy](#galaxy)
     * [From Source](#from-source)
-    * [Running the tests](#running-the-tests)
   * [Usage](#usage)
   * [License](#license)
-  * [Feedback/Issues](#feedbackissues)
-  * [Citation](#citation)
-  * [Further Information](#further-information)
 
 ## Introduction
-Provide a more in-depth overview and description of the software. A single paragraph should be sufficient.
+This software is for validating the manifests generated after sequencing to ensure they contain accurate and matching identification information for species being studied. This should be done before the manifest is passed to operations SSR for processing.
 
 ## Installation
-<software name> has the following dependencies:
+Manifest-validator has the following dependencies:
 
 ### Required dependencies
-List the required dependencies along with the minimal version.
+```
+Python 3.6.9
+```
 
-### Optional dependencies
-List the optional dependencies along with the minimal version.
+There are a number of ways to install manifest-validator and details are provided below. If you encounter an issue when installing manifest-validator please contact your local system administrator. If you encounter a bug please email us at path-help@sanger.ac.uk.
 
-There are a number of ways to install <software name> and details are provided below. If you encounter an issue when installing <software name> please contact your local system administrator. If you encounter a bug please log it [here](link_to_github_issues_page) or email us at path-help@sanger.ac.uk <or appropriate tool email list e.g. iva@sanger.ac.uk>.
-
-Include installation instructions for the following where appropriate:
-
-### Linux specific instructions (Debian, Ubuntu, RedHat etc.) 
-### Mac OS
-### Homebrew/Linuxbrew
 ### Docker
-### Virtual Machine
+WIP
+
 ### From Source
+```
+python3 -m venv manifest_validator
+source manifest_validator/bin/activate
+git clone https://github.com/sanger-pathogens/manifest-validator.git
+```
 
-### Running the tests
-Instructions on how to run the tests and check that the software has installed correctly.
+Running the tests
+```
+python3 setup.py test
+```
+If the tests all pass then install
+```
+cd manifest-validator
+pip install .
+```
 
+### Uninstallation
+To uninstall manifest-validator obtained from the source use the following commands.
+```
+source manifest_validator/bin/activate
+pip uninstall manifest-validator
+```
 ## Usage
 ```
 positional arguments:
@@ -68,18 +70,4 @@ After this, follow the errors in the terminal output to clean the manifest befor
 
 
 ## License
-<software name> is free software, licensed under [<license>](link_to_license_file_on_github).
-
-## Feedback/Issues
-Please report any issues to the [issues page](link_to_github_issues_page) or email path-help@sanger.ac.uk <or appropriate tool email list e.g. iva@sanger.ac.uk>.
-
-## Citation
-If you use this software please cite:
-<Insert citation (journal publication, bioarxiv, JOSS or github repo)>
-
-Also include any additional references that should be cited.
-
-## Further Information (optional)
-For more information on this software see:
-* [Software Web page](link_to_web_page)
-* [Jupyter notebook tutorial](https://github.com/sanger-pathogens/pathogen-informatics-training)
+Manifest-validator is free software, licensed under [<license>](https://github.com/sanger-pathogens/vr-codebase/blob/master/LICENSE).
