@@ -1,15 +1,11 @@
 import os
-import shutil
-import sys
 import glob
-from setuptools import setup, find_packages
+from setuptools import setup
 
 def read(fname):
     return open(os.path.join(os.path.dirname(__file__), fname)).read()
 
-version = 'x.y.z'
-if os.path.exists('VERSION'):
-  version = open('VERSION').read().strip()
+version = '1.0.1'
 
 setup(
     name='validation_components',
@@ -24,8 +20,8 @@ setup(
     test_suite='nose.collector',
     tests_require=['nose >= 1.3'],
     install_requires=[
-         'xlrd >= 1.2',
-         #'pyfastaq >= 3.12.0'
+         'xlrd >= 1.2.0',
+         'requests >= 2.22'
        ],
     license='GPLv3',
     classifiers=[
