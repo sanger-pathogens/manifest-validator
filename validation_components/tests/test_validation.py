@@ -118,9 +118,9 @@ class TestManifestEntry(unittest.TestCase):
 
     def test_report_error_code_2_random_errors(self):
         error_code = 2
-        common_name_statement = "Common Name Statement First. "
-        taxon_id_statement = "Taxon ID Statement Second."
-        expected_return = ': The given common name matches a taxon ID but is not precise. Common Name Statement First. Taxon ID Statement Second.'
+        common_name_statement = "Common Name Statement Not Present. "
+        taxon_id_statement = "Taxon ID Statement Only."
+        expected_return = ': Taxon ID Statement Only.'
         actual_return = self.fake_manifest.report_error(error_code, common_name_statement, taxon_id_statement)
         self.assertEqual(expected_return, actual_return)
 
