@@ -116,8 +116,16 @@ class TestManifestEntry(unittest.TestCase):
         actual_return = self.fake_manifest.report_error(error_code, common_name_statement, taxon_id_statement)
         self.assertEqual(expected_return, actual_return)
 
-    def test_report_error_code_3_random_errors(self):
+    def test_report_error_code_2_random_errors(self):
         error_code = 2
+        common_name_statement = "Common Name Statement First. "
+        taxon_id_statement = "Taxon ID Statement Second."
+        expected_return = ': The given common name matches a taxon ID but is not precise. Common Name Statement First. Taxon ID Statement Second.'
+        actual_return = self.fake_manifest.report_error(error_code, common_name_statement, taxon_id_statement)
+        self.assertEqual(expected_return, actual_return)
+
+    def test_report_error_code_3_random_errors(self):
+        error_code = 3
         common_name_statement = "Common Name Statement First. "
         taxon_id_statement = "Taxon ID Statement Second."
         expected_return = ': Common Name Statement First. Taxon ID Statement Second.'
@@ -175,6 +183,7 @@ class TestValidationRunner(unittest.TestCase):
         taxon_id = ''
         self.fake_manifest = m_query.ManifestEntry(sample_id, common_name, taxon_id)
         self.ncbi_common_name = 'Real Common Name'
+        self.ncbi_taxon_id = "12345"
         self.mocked_query = MagicMock()
         self.mocked_query.generate_new_timestamp.return_value = 1
 
@@ -224,7 +233,7 @@ class TestValidationRunner(unittest.TestCase):
     @patch('validation_components.manifest_querying.NcbiQuery.__init__')
     def test_verify_entries_matching_gets_one_search(self, mocked_query, mocked_taxon_return, mocked_common_name_return, mocked_error):
         mocked_query.return_value = None
-        mocked_common_name_return.return_value = '12345'
+        mocked_taxon_return.return_value = 'species'
         self.fake_manifest.sample_id = 'abc123'
         self.fake_manifest.common_name = 'species'
         self.fake_manifest.taxon_id = '12345'
@@ -233,15 +242,15 @@ class TestValidationRunner(unittest.TestCase):
         returned_value = vl.verify_entries(ENTRY_LIST)
         expected_return = []
         self.assertEqual(returned_value, expected_return)
-        mocked_common_name_return.assert_called_once()
-        mocked_taxon_return.assert_not_called()
+        mocked_taxon_return.assert_called_once()
+        mocked_common_name_return.assert_not_called()
         mocked_error.assert_not_called()
 
-    @patch('validation_components.validation.resolve_common_name')
+    @patch('validation_components.validation.resolve_taxon_id')
     @patch('validation_components.manifest_querying.NcbiQuery.__init__')
-    def test_verify_entries_matching_gets_one_search_for_repeated_query_ids(self, mocked_query, mocked_common_name_return):
+    def test_verify_entries_matching_gets_one_search_for_repeated_query_ids(self, mocked_query, mocked_taxon_return):
         mocked_query.return_value = None
-        mocked_common_name_return.return_value = '12345'
+        mocked_taxon_return.return_value = 'species'
         self.fake_manifest.sample_id = 'abc123'
         self.fake_manifest.common_name = 'species'
         self.fake_manifest.taxon_id = '12345'
@@ -252,7 +261,7 @@ class TestValidationRunner(unittest.TestCase):
         returned_value = vl.verify_entries(ENTRY_LIST)
         expected_return = []
         self.assertEqual(returned_value, expected_return)
-        mocked_common_name_return.assert_called_once()
+        mocked_taxon_return.assert_called_once()
 
     @patch('validation_components.validation.define_error')
     @patch('validation_components.validation.resolve_error')
@@ -329,27 +338,27 @@ class TestValidationRunner(unittest.TestCase):
     def test_resolve_error_correct_non_matching(self):
         ncbi_common_name = 'value'
         ncbi_taxon_id = 'taxId'
-        returned_value = vl.resolve_error(ncbi_common_name, ncbi_taxon_id)
+        returned_value = vl.resolve_error(ncbi_common_name, ncbi_taxon_id, self.fake_manifest)
         EXPECTED_RESULT = 1
         self.assertEqual(returned_value, EXPECTED_RESULT)
 
     def test_resolve_error_null_cases(self):
         ncbi_common_name = '__null__'
         ncbi_taxon_id = 'taxId'
-        returned_value = vl.resolve_error(ncbi_common_name, ncbi_taxon_id)
-        EXPECTED_RESULT = 2
+        returned_value = vl.resolve_error(ncbi_common_name, ncbi_taxon_id, self.fake_manifest)
+        EXPECTED_RESULT = 3
         self.assertEqual(returned_value, EXPECTED_RESULT)
 
         ncbi_common_name = 'value'
         ncbi_taxon_id = '__null__'
-        returned_value = vl.resolve_error(ncbi_common_name, ncbi_taxon_id)
-        EXPECTED_RESULT = 2
+        returned_value = vl.resolve_error(ncbi_common_name, ncbi_taxon_id, self.fake_manifest)
+        EXPECTED_RESULT = 3
         self.assertEqual(returned_value, EXPECTED_RESULT)
 
         ncbi_common_name = '__null__'
         ncbi_taxon_id = '__null__'
-        returned_value = vl.resolve_error(ncbi_common_name, ncbi_taxon_id)
-        EXPECTED_RESULT = 2
+        returned_value = vl.resolve_error(ncbi_common_name, ncbi_taxon_id, self.fake_manifest)
+        EXPECTED_RESULT = 3
         self.assertEqual(returned_value, EXPECTED_RESULT)
 
     class Namespace:

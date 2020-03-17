@@ -24,13 +24,13 @@ def verify_entries(all_entries):
             if error_term is not None:
                 error_list.append((manifest_entry.sample_id + error_term))
         else:
-            ncbi_taxon_id = resolve_common_name(connecter, manifest_entry)
+            ncbi_common_name = resolve_taxon_id(connecter, manifest_entry)
 
-            if manifest_entry.taxon_id == ncbi_taxon_id:
+            if manifest_entry.common_name == ncbi_common_name:
                 error_term = None
             else:
-                ncbi_common_name = resolve_taxon_id(connecter, manifest_entry)
-                error_code = resolve_error(ncbi_common_name, ncbi_taxon_id)
+                ncbi_taxon_id = resolve_common_name(connecter, manifest_entry)
+                error_code = resolve_error(ncbi_common_name, ncbi_taxon_id, manifest_entry)
                 error_term = define_error(error_code, manifest_entry, ncbi_taxon_id, ncbi_common_name)
                 error_list.append((manifest_entry.sample_id+error_term))
             registered_values[manifest_entry.query_id] = error_term
@@ -45,11 +45,13 @@ def define_error(error_code, manifest_entry, ncbi_taxon_id, ncbi_common_name):
     return error_term
 
 
-def resolve_error(ncbi_common_name, ncbi_taxon_id):
+def resolve_error(ncbi_common_name, ncbi_taxon_id, manifest_entry):
     if ncbi_common_name != '__null__' and ncbi_taxon_id != '__null__':
         error_code = 1
-    else:
+    elif manifest_entry.taxon_id == ncbi_taxon_id:
         error_code = 2
+    else:
+        error_code = 3
     return error_code
 
 

@@ -15,6 +15,9 @@ class ManifestEntry:
         if error_code == 1:
             error = (f": Taxon ID and common name don't match. " + common_name_statement
                      + taxon_id_statement)
+        elif error_code == 2:
+            error = f": The given common name matches a taxon ID but is not precise. " \
+                    f"{common_name_statement}{taxon_id_statement}"
         else:
             error = (f": " + common_name_statement + taxon_id_statement)
         return error
