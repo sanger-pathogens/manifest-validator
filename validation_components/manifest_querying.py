@@ -145,6 +145,6 @@ class SpreadsheetLoader:
     def __extract_cell_value(self, row, column):
         if self._sheet.cell_type(row, column) != xlrd.XL_CELL_NUMBER:
             new_data = self._sheet.cell_value(row, column).strip()
-            return '__null__' if new_data == '' else new_data
+            return '__null__' if new_data == '' else new_data.replace('\xa0',' ')
         new_data = str(int(self._sheet.cell_value(row, column)))
         return '__null__' if new_data == '' else new_data
