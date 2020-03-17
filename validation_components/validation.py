@@ -46,10 +46,10 @@ def define_error(error_code, manifest_entry, ncbi_taxon_id, ncbi_common_name):
 
 
 def resolve_error(ncbi_common_name, ncbi_taxon_id, manifest_entry):
-    if ncbi_common_name != '__null__' and ncbi_taxon_id != '__null__':
-        error_code = 1
-    elif manifest_entry.taxon_id == ncbi_taxon_id:
+    if manifest_entry.taxon_id == ncbi_taxon_id:
         error_code = 2
+    elif ncbi_common_name != '__null__' and ncbi_taxon_id != '__null__':
+        error_code = 1
     else:
         error_code = 3
     return error_code
