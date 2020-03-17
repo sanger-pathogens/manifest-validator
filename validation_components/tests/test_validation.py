@@ -50,27 +50,27 @@ class TestNcbiQuerying(unittest.TestCase):
     @patch('validation_components.manifest_querying.NcbiQuery.build_url')
     @patch('validation_components.manifest_querying.NcbiQuery.ncbi_search')
     def test_query_ncbi_name_not_found(self, mocked_search, mocked_url):
-        expected_common_name = 'Danio rerio'
+        expected_common_name_data = ('Danio rerio', None)
         mocked_search.return_value = {'result': {'7955': {'scientificname': 'Danio rerio'}}}
         returned_common_name = self.ncbi_queries.query_ncbi_for_common_name(self.fake_manifest)
-        self.assertEqual(returned_common_name, expected_common_name)
+        self.assertEqual(returned_common_name, expected_common_name_data)
 
     @patch('validation_components.manifest_querying.NcbiQuery.build_url')
     @patch('validation_components.manifest_querying.NcbiQuery.ncbi_search')
     def test_query_ncbi_name_not_found(self, mocked_search, mocked_url):
-        expected_common_name = '__null__'
+        expected_common_name_data = ('__null__', None)
         mocked_search.return_value = {'result': {'12': {'scientificname': ''}}}
         returned_common_name = self.ncbi_queries.query_ncbi_for_common_name(self.fake_manifest)
-        self.assertEqual(returned_common_name, expected_common_name)
+        self.assertEqual(returned_common_name, expected_common_name_data)
 
     @patch('validation_components.manifest_querying.NcbiQuery.build_url')
     @patch('validation_components.manifest_querying.NcbiQuery.ncbi_search')
     def test_query_ncbi_name_found(self, mocked_search, mocked_url):
         self.fake_manifest.taxon_id = '7955'
-        expected_common_name = '__null__'
+        expected_common_name_data = ('__null__', None)
         mocked_search.return_value = {'result': {'7955': {'error': 'Doesnt exist'}}}
         returned_common_name = self.ncbi_queries.query_ncbi_for_common_name(self.fake_manifest)
-        self.assertEqual(returned_common_name, expected_common_name)
+        self.assertEqual(returned_common_name, expected_common_name_data)
 
     @patch('time.sleep')
     @patch('validation_components.manifest_querying.NcbiQuery.get_now',
@@ -233,7 +233,7 @@ class TestValidationRunner(unittest.TestCase):
     @patch('validation_components.manifest_querying.NcbiQuery.__init__')
     def test_verify_entries_matching_gets_one_search(self, mocked_query, mocked_taxon_return, mocked_common_name_return, mocked_error):
         mocked_query.return_value = None
-        mocked_taxon_return.return_value = 'species'
+        mocked_taxon_return.return_value = 'species', 'genus'
         self.fake_manifest.sample_id = 'abc123'
         self.fake_manifest.common_name = 'species'
         self.fake_manifest.taxon_id = '12345'
@@ -250,7 +250,7 @@ class TestValidationRunner(unittest.TestCase):
     @patch('validation_components.manifest_querying.NcbiQuery.__init__')
     def test_verify_entries_matching_gets_one_search_for_repeated_query_ids(self, mocked_query, mocked_taxon_return):
         mocked_query.return_value = None
-        mocked_taxon_return.return_value = 'species'
+        mocked_taxon_return.return_value = 'species', 'genus'
         self.fake_manifest.sample_id = 'abc123'
         self.fake_manifest.common_name = 'species'
         self.fake_manifest.taxon_id = '12345'
@@ -271,7 +271,7 @@ class TestValidationRunner(unittest.TestCase):
     def test_verify_entries_non_matching_get_searched_twice(self, mocked_query, mocked_taxon_return, mocked_common_name_return, mocked_resolve, mocked_definition):
         mocked_query.return_value = None
         mocked_common_name_return.return_value = '67890'
-        mocked_taxon_return.return_value = 'species2'
+        mocked_taxon_return.return_value = 'species2', 'genus'
         mocked_definition.return_value = 'term1'
         self.fake_manifest.sample_id = 'abc123'
         self.fake_manifest.common_name = 'species'
@@ -307,15 +307,15 @@ class TestValidationRunner(unittest.TestCase):
         self.fake_manifest.taxon_id = '__null__'
         self.mocked_query.query_ncbi_for_common_name.return_value = 'Not null'
         returned_value = vl.resolve_taxon_id(self.mocked_query, self.fake_manifest)
-        EXPECTED_RESULT = '__null__'
+        EXPECTED_RESULT = '__null__', None
         self.assertEqual(returned_value, EXPECTED_RESULT)
 
     def test_resolve_taxon_id_returns_ncbi(self):
         self.fake_manifest.common_name = 'value'
         self.fake_manifest.taxon_id = 'taxId'
-        self.mocked_query.query_ncbi_for_common_name.return_value = 'Not null'
+        self.mocked_query.query_ncbi_for_common_name.return_value = 'Not null', None
         returned_value = vl.resolve_taxon_id(self.mocked_query, self.fake_manifest)
-        EXPECTED_RESULT = 'Not null'
+        EXPECTED_RESULT = 'Not null', None
         self.assertEqual(returned_value, EXPECTED_RESULT)
 
     @patch('validation_components.manifest_querying.ManifestEntry.taxon_id_definition')

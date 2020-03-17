@@ -24,7 +24,12 @@ def verify_entries(all_entries):
             if error_term is not None:
                 error_list.append((manifest_entry.sample_id + error_term))
         else:
-            ncbi_common_name = resolve_taxon_id(connecter, manifest_entry)
+            ncbi_common_name, ncbi_rank = resolve_taxon_id(connecter, manifest_entry)
+
+            if ncbi_rank not in ['genus', 'species', None]:
+                error_list.append((manifest_entry.sample_id + f": Given taxon ID corresponds to the rank '{ncbi_rank}'"
+                                                              f" - please use a genus/species or the ID 32644 with "
+                                                              f"'unidentified' if a more accurate rank is not known."))
 
             if manifest_entry.common_name == ncbi_common_name:
                 error_term = None
@@ -57,10 +62,11 @@ def resolve_error(ncbi_common_name, ncbi_taxon_id, manifest_entry):
 
 def resolve_taxon_id(connecter, manifest_entry):
     if manifest_entry.taxon_id != '__null__':
-        ncbi_common_name = connecter.query_ncbi_for_common_name(manifest_entry)
+        ncbi_common_name, ncbi_rank = connecter.query_ncbi_for_common_name(manifest_entry)
     else:
         ncbi_common_name = "__null__"
-    return ncbi_common_name
+        ncbi_rank = None
+    return ncbi_common_name, ncbi_rank
 
 
 def resolve_common_name(connecter, manifest_entry):

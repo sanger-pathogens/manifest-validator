@@ -80,9 +80,11 @@ class NcbiQuery:
         if 'result' in common_name_json and manifest_entry.taxon_id in common_name_json['result'] and 'scientificname' in \
                 common_name_json['result'][manifest_entry.taxon_id]:
             ncbi_common_name = common_name_json['result'][manifest_entry.taxon_id]['scientificname']
+            ncbi_ranking = common_name_json['result'][manifest_entry.taxon_id]['rank']
         else:
             ncbi_common_name = '__null__'
-        return ncbi_common_name
+            ncbi_ranking = None
+        return ncbi_common_name, ncbi_ranking
 
     def build_url(self, manifest_entry, esearch: bool):
         base_url = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/'
