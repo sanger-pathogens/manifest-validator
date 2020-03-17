@@ -3,15 +3,19 @@ import requests
 from datetime import datetime
 import time
 
+
 class ManifestEntry:
-    '''A class construct for a single entry from the manifest submitted and query the entries when necessary'''
+    '''
+    A class construct for a single entry from the manifest submitted and query the entries when necessary
+    '''
     def __init__(self, sample_id: str, common_name, taxon_id):
         self.sample_id = sample_id
         self.common_name = common_name
         self.taxon_id = taxon_id
         self.query_id = common_name + str(taxon_id)
 
-    def report_error(self, error_code, common_name_statement, taxon_id_statement):
+    @staticmethod
+    def report_error(error_code, common_name_statement, taxon_id_statement):
         if error_code == 1:
             error = (f": Taxon ID and common name don't match. " + common_name_statement
                      + taxon_id_statement)
