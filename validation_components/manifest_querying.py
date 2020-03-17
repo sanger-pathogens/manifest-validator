@@ -3,18 +3,24 @@ import requests
 from datetime import datetime
 import time
 
+
 class ManifestEntry:
-    '''A class construct for a single entry from the manifest submitted and query the entries when necessary'''
+    '''
+    A class construct for a single entry from the manifest submitted and query the entries when necessary
+    '''
     def __init__(self, sample_id: str, common_name, taxon_id):
         self.sample_id = sample_id
         self.common_name = common_name
         self.taxon_id = taxon_id
         self.query_id = common_name + str(taxon_id)
 
-    def report_error(self, error_code, common_name_statement, taxon_id_statement):
+    @staticmethod
+    def report_error(error_code, common_name_statement, taxon_id_statement):
         if error_code == 1:
             error = (f": Taxon ID and common name don't match. " + common_name_statement
                      + taxon_id_statement)
+        elif error_code == 2:
+            error = f": {taxon_id_statement}"
         else:
             error = (f": " + common_name_statement + taxon_id_statement)
         return error
@@ -74,9 +80,11 @@ class NcbiQuery:
         if 'result' in common_name_json and manifest_entry.taxon_id in common_name_json['result'] and 'scientificname' in \
                 common_name_json['result'][manifest_entry.taxon_id]:
             ncbi_common_name = common_name_json['result'][manifest_entry.taxon_id]['scientificname']
+            ncbi_ranking = common_name_json['result'][manifest_entry.taxon_id]['rank']
         else:
             ncbi_common_name = '__null__'
-        return ncbi_common_name
+            ncbi_ranking = None
+        return ncbi_common_name, ncbi_ranking
 
     def build_url(self, manifest_entry, esearch: bool):
         base_url = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/'
@@ -137,6 +145,6 @@ class SpreadsheetLoader:
     def __extract_cell_value(self, row, column):
         if self._sheet.cell_type(row, column) != xlrd.XL_CELL_NUMBER:
             new_data = self._sheet.cell_value(row, column).strip()
-            return '__null__' if new_data == '' else new_data
+            return '__null__' if new_data == '' else new_data.replace('\xa0',' ')
         new_data = str(int(self._sheet.cell_value(row, column)))
         return '__null__' if new_data == '' else new_data
