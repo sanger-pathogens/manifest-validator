@@ -26,7 +26,7 @@ def verify_entries(all_entries):
         else:
             ncbi_common_name, ncbi_rank = resolve_taxon_id(connecter, manifest_entry)
 
-            if ncbi_rank not in ['genus', 'species', '', None]:
+            if ncbi_rank not in ['genus', 'species', 'subspecies', '', None]:
                 error_list.append((manifest_entry.sample_id + f": Given taxon ID corresponds to the rank '{ncbi_rank}'"
                                                               f" - please use a genus/species or the ID 32644 with "
                                                               f"'unidentified' if a more accurate rank is not known."))
