@@ -20,8 +20,9 @@ setup(
     test_suite='nose.collector',
     tests_require=['nose >= 1.3'],
     install_requires=[
+         # note xlrd > 1.2.0 won't read XLSX files
          'xlrd == 1.2.0',
-         'requests >= 2.22'
+         'requests >= 2.23.0'
        ],
     license='GPLv3',
     classifiers=[
