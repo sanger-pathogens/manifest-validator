@@ -20,7 +20,7 @@ setup(
     test_suite='nose.collector',
     tests_require=['nose >= 1.3'],
     install_requires=[
-         'xlrd >= 1.2.0',
+         'xlrd == 1.2.0',
          'requests >= 2.22'
        ],
     license='GPLv3',
