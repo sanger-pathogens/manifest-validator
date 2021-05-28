@@ -393,7 +393,7 @@ class TestSpreadsheetParsing(unittest.TestCase):
         fake_manifest_4 = m_query.ManifestEntry(sample_id, common_name, taxon_id)
 
         expected = [fake_manifest_1, fake_manifest_2, fake_manifest_3, fake_manifest_4]
-        actual = loader.load()
+        actual = loader.load_xlsx()
         for position, return_value in enumerate(actual):
             self.assertEqual(return_value.sample_id, expected[position].sample_id)
             self.assertEqual(return_value.common_name, expected[position].common_name)

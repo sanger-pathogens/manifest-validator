@@ -4,7 +4,10 @@ import argparse
 def validation_runner(arguments: argparse.Namespace):
     '''Runs the checks for taxonomy and common_name errors in a given manifest'''
     loader = SpreadsheetLoader(arguments.spreadsheet)
-    all_entries = loader.load()
+    if loader._format == 'xls':
+        all_entries = loader.load()
+    else:
+        all_entries = loader.load_xlsx()
 
     error_list = verify_entries(all_entries)
 
