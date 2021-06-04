@@ -1,4 +1,5 @@
 import xlrd
+import openpyxl
 import requests
 from datetime import datetime
 import time
@@ -109,8 +110,14 @@ class SpreadsheetLoader:
 
     def __init__(self, file):
         self._file = file
-        self._workbook = xlrd.open_workbook(self._file)
-        self._sheet = self._workbook.sheet_by_index(0)
+        try:
+            self._workbook = openpyxl.load_workbook(self._file)
+            self._sheet = self._workbook.worksheets[0]
+            self._format = 'xlsx'
+        except:
+            self._workbook = xlrd.open_workbook(self._file)
+            self._sheet = self._workbook.sheet_by_index(0)
+            self._format = 'xls'
 
     def load(self):
         entries = []
@@ -148,3 +155,41 @@ class SpreadsheetLoader:
             return '__null__' if new_data == '' else new_data.replace('\xa0',' ')
         new_data = str(int(self._sheet.cell_value(row, column)))
         return '__null__' if new_data == '' else new_data
+
+    def load_xlsx(self):
+        entries = []
+        data_row = 0
+        header_row = 0
+        for row in range(self._sheet.max_row):
+            if self._sheet.cell(row=row + 1, column=1).value == 'SANGER PLATE ID':
+                data_row = row + 2
+                header_row = row + 1
+                break
+
+
+        for col in range(self._sheet.max_column):
+            header_cell = self._sheet.cell(row=header_row, column=col + 1).value
+            if header_cell == 'SUPPLIER SAMPLE NAME':
+                sample_id_column = col + 1
+            elif header_cell == 'TAXON ID':
+                taxon_id_column = col + 1
+            elif header_cell == 'COMMON NAME':
+                common_name_column = col + 1
+        reads = []
+
+        for row in range(data_row, self._sheet.max_row+1):
+            common_name = self.__extract_cell_value_xlsx(row, common_name_column)
+            taxon_id = self.__extract_cell_value_xlsx(row, taxon_id_column)
+            sample_id = self.__extract_cell_value_xlsx(row, sample_id_column)
+            if sample_id != '__null__':
+                entry = ManifestEntry(sample_id, common_name, taxon_id)
+                entries.append(entry)
+        return entries
+
+
+    def __extract_cell_value_xlsx(self, row, column):
+        if isinstance(self._sheet.cell(row=row, column=column).value, str):
+            new_data = self._sheet.cell(row=row, column=column).value.strip()
+            return '__null__' if new_data == '' else new_data.replace('\xa0',' ')
+        new_data = self._sheet.cell(row=row, column=column).value
+        return '__null__' if new_data == None else str(int(new_data))

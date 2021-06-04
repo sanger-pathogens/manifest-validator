@@ -5,7 +5,7 @@ from setuptools import setup
 def read(fname):
     return open(os.path.join(os.path.dirname(__file__), fname)).read()
 
-version = '1.1.0'
+version = '1.2.0'
 
 setup(
     name='validation_components',
@@ -22,7 +22,8 @@ setup(
     install_requires=[
          # note xlrd > 1.2.0 won't read XLSX files
          'xlrd == 1.2.0',
-         'requests >= 2.23.0'
+         'requests >= 2.23.0',
+         'openpyxl>=3.0.4'
        ],
     license='GPLv3',
     classifiers=[
